@@ -38,35 +38,37 @@ x = tf.placeholder(tf.float32, shape = [None,num_factors]) #width of input
 y_ = tf.placeholder(tf.float32, shape = [None,num_outs]) #width of output
 
 
-layer1 = tf.layers.dense(x, num_factors, tf.nn.sigmoid, bias_initializer=tf.random_uniform_initializer)
-layer2 = tf.layers.dense(layer1, num_factors, tf.nn.sigmoid, bias_initializer=tf.random_uniform_initializer)
-layer3 = tf.layers.dense(layer2, num_factors, tf.nn.sigmoid, bias_initializer=tf.random_uniform_initializer)
-layer4 = tf.layers.dense(layer3, num_factors, tf.nn.sigmoid, bias_initializer=tf.random_uniform_initializer)
-layer5 = tf.layers.dense(layer4, num_factors, tf.nn.sigmoid, bias_initializer=tf.random_uniform_initializer)
+layer1 = tf.layers.dense(x, num_factors, tf.nn.softplus, bias_initializer=tf.random_uniform_initializer)
+layer2 = tf.layers.dense(layer1, num_factors, tf.nn.softplus, bias_initializer=tf.random_uniform_initializer)
+layer3 = tf.layers.dense(layer2, num_factors, tf.nn.softplus, bias_initializer=tf.random_uniform_initializer)
+layer4 = tf.layers.dense(layer3, num_factors, tf.nn.softplus, bias_initializer=tf.random_uniform_initializer)
+layer5 = tf.layers.dense(layer4, num_factors, tf.nn.softplus, bias_initializer=tf.random_uniform_initializer)
 
-y = tf.layers.dense(layer5, num_outs, tf.nn.sigmoid)
+y = tf.layers.dense(layer5, num_outs, tf.nn.softplus)
 
 
 with tf.name_scope('cross_entropy'):
     cross_entropy = tf.losses.huber_loss(labels = y_, predictions = y)
 
 with tf.name_scope('train'):
-    train_step = tf.train.AdamOptimizer(epsilon = .01).minimize(cross_entropy)
-
+    train_step = tf.train.AdamOptimizer(epsilon = .00001).minimize(cross_entropy)
+    # train_step = tf.train.GradientDescentOptimizer(.9).minimize(cross_entropy)
 
 ins = df_input.values
 
-norm_vector_in = np.linalg.norm(x)
+norm_vector_in = np.linalg.norm(ins, axis = 0, ord = 1)
 
 print(norm_vector_in)
+ins = ins / norm_vector_in
 
 outs = df_output.values #pd df to numpy
+norm_vector_out = np.linalg.norm(outs, axis = 0, ord = 1)
+outs = outs / norm_vector_out
 
 
 
 
-
-if False: #for _ in range(100) :#True:    #do or do not run training
+for _ in range(1) :#True:    #do or do not run training
 
     sess.run(tf.global_variables_initializer())
     # train_i = df_body.shape[1] #length of body = number of runs
@@ -83,14 +85,14 @@ if False: #for _ in range(100) :#True:    #do or do not run training
 
     loop_start = timer()
 
-    for i in range(5000):
+    for i in range(50000):
         # sess.run(train_step, feed_dict={x: np.expand_dims(ins[train_i], axis = 0),
         #                                 y_: np.expand_dims(outs[train_i], axis = 0)}) #first batch over whole set
 
         sess.run(train_step, feed_dict={x: ins[train_i],
                                         y_: outs[train_i]})
 
-        if i % 25 == 0 or i in [1,2,3,4,5,6,8,10,12,15,20]: #batching
+        if i % 25 == 0 or i == 2 or i == 4 or i == 10: #batching
             test_i = list()
             train_i = list() ###empty the ins and outs index lists
 
@@ -112,12 +114,11 @@ if False: #for _ in range(100) :#True:    #do or do not run training
         if i%500 == 0:
             loop_end = timer()
             delta_t = loop_end - loop_start
-    print('step {0}, training error {1}, test error {2} in {3}-seconds'.format(i, train_error, test_error,
-                                                                       delta_t))
-    prediction = sess.run(y,{x: ins[:]})
+            print('step {0}, training error {1}, test error {2} in {3}-seconds'.format(i, train_error, test_error, delta_t))
+            prediction = sess.run(y,{x: ins[:]}) * norm_vector_out
     # print(prediction)
-    print(prediction[1])
-    print(prediction[1,1])
+            print(100 * (prediction[1]- (outs[1] * norm_vector_out))/(outs[1] * norm_vector_out))
+    # print(prediction[1,1])
     out_weights = [1,1,1]
 
 
