@@ -31,32 +31,31 @@ num_outs = df_output.shape[1]
 # print(num_outs)
 
 #####Generating predictive expression#####
+
 sess = tf.InteractiveSession()
 
 x = tf.placeholder(tf.float32, shape = [None,num_factors]) #width of input
 y_ = tf.placeholder(tf.float32, shape = [None,num_outs]) #width of output
 
 
-layer1 = tf.layers.dense(x, num_factors, tf.nn.relu)
-layer2 = tf.layers.dense(layer1, num_factors, tf.nn.relu)
-layer3 = tf.layers.dense(layer2, num_factors, tf.nn.relu)
-layer4 = tf.layers.dense(layer3, num_factors, tf.nn.relu)
-layer5 = tf.layers.dense(layer4, num_factors, tf.nn.relu)
+layer1 = tf.layers.dense(x, num_factors, tf.nn.softplus)
+layer2 = tf.layers.dense(layer1, num_factors, tf.nn.softplus)
+layer3 = tf.layers.dense(layer2, num_factors, tf.nn.softplus)
+layer4 = tf.layers.dense(layer3, num_factors, tf.nn.softplus)
+layer5 = tf.layers.dense(layer4, num_factors, tf.nn.softplus)
 
-y = tf.layers.dense(layer5, num_outs, tf.nn.relu)
+y = tf.layers.dense(layer5, num_outs, tf.nn.softplus)
 
 
 with tf.name_scope('cross_entropy'):
     cross_entropy = tf.losses.huber_loss(labels = y_, predictions = y)
 
 with tf.name_scope('train'):
-    train_step = tf.train.AdamOptimizer(epsilon = .001).minimize(cross_entropy)
-    # train_step = tf.train.GradientDescentOptimizer(.9).minimize(cross_entropy)
+    train_step = tf.train.AdamOptimizer(epsilon = .01).minimize(cross_entropy)
+
 
 ins = df_input.values
-# ins = np.expand_dims(ins, axis = 0)
 outs = df_output.values #pd df to numpy
-# outs = np.expand_dims(outs, axis = 0)
 
 
 
@@ -79,14 +78,14 @@ if True :#True:    #do or do not run training
 
     loop_start = timer()
 
-    for i in range(25000):
+    for i in range(50000):
         # sess.run(train_step, feed_dict={x: np.expand_dims(ins[train_i], axis = 0),
         #                                 y_: np.expand_dims(outs[train_i], axis = 0)}) #first batch over whole set
 
         sess.run(train_step, feed_dict={x: ins[train_i],
                                         y_: outs[train_i]})
 
-        if i % 25 == 0 or i == 2 or i == 4 or i == 10: #batching
+        if i % 25 == 0 or i in [1,2,3,4,5,6,8,10,12,15,20]: #batching
             test_i = list()
             train_i = list() ###empty the ins and outs index lists
 
@@ -110,6 +109,8 @@ if True :#True:    #do or do not run training
             delta_t = loop_end - loop_start
             print('step {0}, training error {1}, test error {2} in {3}-seconds'.format(i, train_error, test_error,
                                                                                            delta_t))
+    prediction = sess.run(y,{x: ins[:]})
+    print(prediction)
 #
 # #
 #
