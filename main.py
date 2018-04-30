@@ -38,13 +38,13 @@ x = tf.placeholder(tf.float32, shape = [None,num_factors]) #width of input
 y_ = tf.placeholder(tf.float32, shape = [None,num_outs]) #width of output
 
 
-layer1 = tf.layers.dense(x, num_factors, tf.nn.softplus)
-layer2 = tf.layers.dense(layer1, num_factors, tf.nn.softplus)
-layer3 = tf.layers.dense(layer2, num_factors, tf.nn.softplus)
-layer4 = tf.layers.dense(layer3, num_factors, tf.nn.softplus)
-layer5 = tf.layers.dense(layer4, num_factors, tf.nn.softplus)
+layer1 = tf.layers.dense(x, num_factors, tf.nn.sigmoid, bias_initializer=tf.random_uniform_initializer)
+layer2 = tf.layers.dense(layer1, num_factors, tf.nn.sigmoid, bias_initializer=tf.random_uniform_initializer)
+layer3 = tf.layers.dense(layer2, num_factors, tf.nn.sigmoid, bias_initializer=tf.random_uniform_initializer)
+layer4 = tf.layers.dense(layer3, num_factors, tf.nn.sigmoid, bias_initializer=tf.random_uniform_initializer)
+layer5 = tf.layers.dense(layer4, num_factors, tf.nn.sigmoid, bias_initializer=tf.random_uniform_initializer)
 
-y = tf.layers.dense(layer5, num_outs, tf.nn.softplus)
+y = tf.layers.dense(layer5, num_outs, tf.nn.sigmoid)
 
 
 with tf.name_scope('cross_entropy'):
@@ -55,13 +55,18 @@ with tf.name_scope('train'):
 
 
 ins = df_input.values
+
+norm_vector_in = np.linalg.norm(x)
+
+print(norm_vector_in)
+
 outs = df_output.values #pd df to numpy
 
 
 
 
 
-if True :#True:    #do or do not run training
+if False: #for _ in range(100) :#True:    #do or do not run training
 
     sess.run(tf.global_variables_initializer())
     # train_i = df_body.shape[1] #length of body = number of runs
@@ -78,7 +83,7 @@ if True :#True:    #do or do not run training
 
     loop_start = timer()
 
-    for i in range(50000):
+    for i in range(5000):
         # sess.run(train_step, feed_dict={x: np.expand_dims(ins[train_i], axis = 0),
         #                                 y_: np.expand_dims(outs[train_i], axis = 0)}) #first batch over whole set
 
@@ -107,20 +112,14 @@ if True :#True:    #do or do not run training
         if i%500 == 0:
             loop_end = timer()
             delta_t = loop_end - loop_start
-            print('step {0}, training error {1}, test error {2} in {3}-seconds'.format(i, train_error, test_error,
-                                                                                           delta_t))
+    print('step {0}, training error {1}, test error {2} in {3}-seconds'.format(i, train_error, test_error,
+                                                                       delta_t))
     prediction = sess.run(y,{x: ins[:]})
-    print(prediction)
-#
-# #
-#
-# df_output = df_body.filter(regex=('OUT.*'))
-# df_output = df_output.infer_objects()
-# # df_output = pd.to_numeric(df_output)
-#
-# # df_output.convert_objects(convert_numeric='coerce')
-# print(df_output.dtypes)
-# print(df_output)
-#
-# # print(df_head)
-# # print(df_body.dtypes)
+    # print(prediction)
+    print(prediction[1])
+    print(prediction[1,1])
+    out_weights = [1,1,1]
+
+
+# run prediction over whole range???
+# optimize for predictions for weighted sum of each variable that is in the ~335+ percentile +/-
