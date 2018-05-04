@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import scipy as sp
 import tensorflow as tf
+import itertools
 from timeit import default_timer as timer
 
 
@@ -83,45 +84,19 @@ def combinatorial_array(mins, maxes, types, resolution = 4, ):
             pair = rotate(list(pair), mix_order)
             mix_order += 1
             pairs_arr.append(pair)
-            # print(pair)
 
+    out_length = 1  # Formula for total number of combinations to preallocate numpy array
+    for each in pairs_arr:
+        out_length = out_length * len(each)
 
+    out_arr = np.zeros([len(mins),out_length])
 
-        # arr[i] = list(mins[i]).append(maxes[i])
-    print(pairs_arr)
+    for i, row in enumerate(itertools.product(*pairs_arr)):
+        out_arr[:, i] = row
 
-
-
-
-
-
-
-
-
-
-    # out_length = (resolution**(np.sum(cont_bool+mix_bool)))*2**(np.sum(cat_bool))
-    # out_length = (resolution**(25))*2**(np.sum(cat_bool))
-
-    # print(out_length)
-
-    # for _, i in enumerate(mins):
-    #     for
-    #need list of levels for each factor (1d array of lists)
-
-
-
-
-
-
-    # for _, index in mins:
-    #     if type[index] == 'MIX':
-    #         'etc.'
-    #     elif types[index] == 'CATEGORICAL':
-    #         'ETC.'
-    #     else types[index == ]:
-    #         'etc'
-
-
+    return(out_arr)
+    # for t in itertools.product(*pairs_arr):  ###fast flatten of rows, no needed
+    #     print(t)
 
 
 combinatorial_array(mins, maxes, types)
