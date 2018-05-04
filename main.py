@@ -7,22 +7,124 @@ from timeit import default_timer as timer
 
 # ####################READ IN CSV PARTITION INTO HEAD BODY INPUT OUTPUTS##################
 
-df = pd.read_csv(r'C:\Users\georg\PycharmProjects\Bambi\bambi_test.csv')
+df = pd.read_csv(r'C:\Users\georg\PycharmProjects\Bambi\bambi_test2.csv')
 df = df.drop(columns = ['Factor Name',]) #drop experiment run id.
 
-df_head = df[0:4].reset_index().copy()
-df_body = df[4:].reset_index().copy()
+# print(df)
+
+df_head = df[0:3].reset_index().copy()
+df_body = df[3:].reset_index().copy()
 df_body = df_body.apply(pd.to_numeric, errors = 'ignore')
 
+# print(df_head)
 
 df_output = df_body.filter(regex=('OUT.*')) #selects OUT**** to create DF of outputs
 df_output = df_output.apply(pd.to_numeric, errors = 'ignore')
-
 
 # df_input = df_body[df_body.columns.difference(df_output.columns)] #strips outputs to create input DF
 df_input = df_body.drop(columns=['index',])
 df_input = df_input.drop(columns=list(df_output)) #drop output column names
 
+# print(df_input)
+
+df_head = df_head.drop(columns=['index',])
+df_head = df_head.drop(columns=list(df_output))
+
+# print(df_head)
+
+types = df_head.loc[[0]].values.flatten()
+mins = df_head.loc[[1]].values.flatten().astype(np.float32)  # rows to #'s in np array
+maxes = df_head.loc[[2]].values.flatten().astype(np.float32)
+
+def rotate(l, x):
+    x = x%len(l)
+    return l[-x:] + l[:-x]
+
+
+def combinatorial_array(mins, maxes, types, resolution = 4, ):
+    """
+    takes dataframe of header, pre-pruned, returns a 2-d numpy array of inputs evenly spaced
+    over the whole design space accounting for mixtures and categorical variables
+    suitable for feeding into the tf prediction algorithm
+
+    must be fed non-normalized values!!!!
+    returns non-normalized values!!!!
+    """
+
+    pairs_arr = list()
+
+    #create boolean arrays for types
+    cat_bool = (types == 'CATEGORICAL')
+    cont_bool = (types == 'CONTINUOUS')
+    mix_bool = (types == 'MIX')
+
+    num_mix = np.count_nonzero(mix_bool)
+    mix_order = 0  # staggers mixture concentrations so sum adds up
+
+    for i, _ in enumerate(mins):
+
+        if cat_bool[i]:
+            pair = np.arange(mins[i],maxes[i]+1,1)  # +1 required due to non-inclusive
+            print(pair)
+            pairs_arr.append(list(pair))
+
+        if cont_bool[i]: #inc mixtures for now
+            pair = list()
+            print(mins[i])
+            a = mins[i]
+            b = maxes[i]
+            pair.append(a)
+            pair.append(b)
+            pairs_arr.append(pair)
+
+        if mix_bool[i]:
+            pair = np.linspace(mins[i],maxes[i],num_mix) #DEBUG CHECK make sure works for n > 3 mixes!!!
+            pair = pair / sum(pair) * 100 #normalization, dbl check to make sure works for maxes/mins not 0-100!!!!
+            pair = rotate(list(pair), mix_order)
+            mix_order += 1
+            pairs_arr.append(pair)
+            # print(pair)
+
+
+
+        # arr[i] = list(mins[i]).append(maxes[i])
+    print(pairs_arr)
+
+
+
+
+
+
+
+
+
+
+    # out_length = (resolution**(np.sum(cont_bool+mix_bool)))*2**(np.sum(cat_bool))
+    # out_length = (resolution**(25))*2**(np.sum(cat_bool))
+
+    # print(out_length)
+
+    # for _, i in enumerate(mins):
+    #     for
+    #need list of levels for each factor (1d array of lists)
+
+
+
+
+
+
+    # for _, index in mins:
+    #     if type[index] == 'MIX':
+    #         'etc.'
+    #     elif types[index] == 'CATEGORICAL':
+    #         'ETC.'
+    #     else types[index == ]:
+    #         'etc'
+
+
+
+
+combinatorial_array(mins, maxes, types)
 
 num_factors = df_input.shape[1]
 num_outs = df_output.shape[1]
@@ -57,8 +159,6 @@ with tf.name_scope('train'):
 ins = df_input.values
 
 norm_vector_in = np.linalg.norm(ins, axis = 0, ord = 1)
-
-print(norm_vector_in)
 ins = ins / norm_vector_in
 
 outs = df_output.values #pd df to numpy
@@ -68,7 +168,7 @@ outs = outs / norm_vector_out
 
 
 
-for _ in range(1) :#True:    #do or do not run training
+for _ in range(0) :#True:    #do or do not run training
 
     sess.run(tf.global_variables_initializer())
     # train_i = df_body.shape[1] #length of body = number of runs
@@ -120,6 +220,10 @@ for _ in range(1) :#True:    #do or do not run training
             print(100 * (prediction[1]- (outs[1] * norm_vector_out))/(outs[1] * norm_vector_out))
     # print(prediction[1,1])
     out_weights = [1,1,1]
+
+
+
+
 
 
 # run prediction over whole range???
