@@ -47,6 +47,7 @@ import itertools
 # norm_vector_out = np.linalg.norm(outs, axis = 0, ord = 2)/(outs.shape[1])
 # outs = outs / norm_vector_out
 
+
 def rotate(l, x):
     x = x%len(l)
     return l[-x:] + l[:-x]
@@ -107,16 +108,65 @@ def perimeter_array(mins, maxes, types):
     # for t in itertools.product(*pairs_arr):  ###fast flatten of rows, no needed
     #     print(t)
 
-def design_space_sample(mins, maxes, samples):
+def design_space_sample_new(mins, maxes, types, samples, mix_sum):
+    """replaces design_space_sample
+
+    inputs: mins -ndarray of floats representing min value of space
+    maxs -ndarray representing max values of space
+    types -ndarray of str, 'CATEGORICAL' 'CONTINUOUS' 'MIX' only valid entries
+    samples - int, number of valid experiments to be produced.
+    mix_sum: total un-normalized target of mix variables
+
+    outputs a len(min) x samples
+
     """
-    For Monte Carlo method to create an average value over the design space using
-    the tensorflow eval, generates array of un-normalized tests
-    ignoring mixture/categorical value constraints
-    """
-    out_arr = np.zeros([len(mins),samples])
-    for i in range(samples):
-        out_arr[:, i] = [np.random.uniform(mins[n],maxes[n]) for n in range(len(mins))]
+
+    #create boolean arrays for types
+    cat_bool = (types == 'CATEGORICAL')
+    cont_bool = (types == 'CONTINUOUS')
+    mix_bool = (types == 'MIX')
+
+    num_mix = np.count_nonzero(mix_bool)
+    mix_order = 0  # staggers mixture concentrations so sum adds up
+
+    out_arr = np.zeros([len(mins),samples], dtype=np.float32) #preallocate output
+    cat_levels = list()
+
+    for i, each in enumerate(mins): #generates list of range interators of valid categorical values for each cat factor
+        if cat_bool[i]:
+            cat_min = np.int(np.round(mins[i]))
+            cat_max = np.int(np.round(maxes[i]))
+            cat_level_range = range(cat_min, cat_max)
+            cat_levels.append(cat_level_range)
+        else:
+            cat_levels.append(0) #placeholder 0
+
+    for i, type in enumerate(types):
+        if type == 'CONTINUOUS':
+            out_arr[i, :] = np.random.uniform(mins[i],maxes[i],[1,samples])
+        if type == 'CATEGPROCAL':
+            out_arr[i, :] = np.random.choice(cat_levels[i],size = [1,samples])
+        if type == 'MIX':
+            out_arr[i, :] = np.random.uniform(mins[i], maxes[i], [1, samples]) #need to normalize to mix sum
+
+    mix_sub_array = out_arr[mix_bool]
+    mix_sub_sums = np.sum(mix_sub_array, axis = 0)
+    mix_sub_norm = mix_sub_sums / mix_sum
+    out_arr[mix_bool] = mix_sub_sums / mix_sub_norm  ####math almost certainly needs debugging
+
     return out_arr
+
+
+def mix_sum(ins, types):
+    """ returns float representing total amount of mix - calculated from data
+    inputs:
+    ins: input data ndarray (floats) representing non-normalized numbers
+    types: label ndarray of str 'CATEGORICAL' 'CONTINUOUS' 'MIX' only valid entries
+    """
+    mix_bool = (types == 'MIX')
+    ins_mix = ins * mix_bool #0's non mix inputs - check geometry on matrix  multiplication
+    ins_mix = np.sum(ins_mix, axis=1) #sums across experiments
+    return np.max(ins_mix)  #max value of summation
 
 
 def normalize(in_arr, norm_vector):
