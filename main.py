@@ -108,6 +108,86 @@ def design_space_sample(mins, maxes, samples):
         out_arr[:, i] = [np.random.uniform(mins[n],maxes[n]) for n in range(len(mins))]
     return out_arr
 
+def mix_sum(ins, types):
+    """ returns float representing total amount of mix - calculated from data
+    inputs:
+    ins: input data ndarray (floats) representing non-normalized numbers
+    types: label ndarray of str 'CATEGORICAL' 'CONTINUOUS' 'MIX' only valid entries
+    """
+    mix_bool = (types == 'MIX')
+    ins_mix = ins * mix_bool #0's non mix inputs - check geometry on matrix  multiplication
+    ins_mix = np.sum(ins_mix, axis=1) #sums across experiments
+    return np.max(ins_mix)  #max value of summation
+
+
+def design_space_sample_new(mins, maxes, types, samples, mix_sum):
+    """replaces design_space_sample
+
+    inputs: mins -ndarray of floats representing min value of space
+    maxs -ndarray representing max values of space
+    types -ndarray of str, 'CATEGORICAL' 'CONTINUOUS' 'MIX' only valid entries
+    samples - int, number of valid experiments to be produced.
+    mix_sum: total un-normalized target of mix variables
+
+    outputs a len(min) x samples
+
+    """
+
+    #create boolean arrays for types
+    cat_bool = (types == 'CATEGORICAL')
+    cont_bool = (types == 'CONTINUOUS')
+    mix_bool = (types == 'MIX')
+
+    num_mix = np.count_nonzero(mix_bool)
+    mix_order = 0  # staggers mixture concentrations so sum adds up
+
+    out_arr = np.zeros([len(mins),samples], dtype=np.float32) #preallocate output
+    cat_levels = list()
+
+    for i, each in enumerate(mins): #generates list of range interators of valid categorical values for each cat factor
+        if cat_bool[i]:
+            cat_min = np.int(np.round(mins[i]))
+            cat_max = np.int(np.round(maxes[i]))
+            cat_level_range = range(cat_min, cat_max)
+            cat_levels.append(cat_level_range)
+        else:
+            cat_levels.append(0) #placeholder 0
+
+    for i, type in enumerate(types):
+        if type == 'CONTINUOUS':
+            out_arr[i, :] = np.random.uniform(mins[i],maxes[i],[1,samples])
+        if type == 'CATEGPROCAL':
+            out_arr[i, :] = np.random.choice(cat_levels[i],size = [1,samples])
+        if type == 'MIX':
+            out_arr[i, :] = np.random.uniform(mins[i], maxes[i], [1, samples]) #need to normalize to mix sum
+
+    mix_sub_array = out_arr[mix_bool]
+    mix_sub_sums = np.sum(mix_sub_array, axis = 0)
+    mix_sub_norm = mix_sub_sums / mix_sum
+    out_arr[mix_bool] = mix_sub_sums / mix_sub_norm  ####math almost certainly needs debugging
+
+    return out_arr
+
+
+
+    # for n in range(samples):
+    #     mix_sum_local = mix_sum #reset for each set of experiments
+    #     num_mix_local = num_mix
+    #     for i, each in enumerate(mins):
+    #         if cat_bool[i]:
+    #             out_arr[i,n] = np.random.choice(cat_levels[i])
+    #
+    #         if cont_bool[i]:
+    #             out_arr[i,n] = np.random.uniform(mins[i],maxes[i])
+    #
+    #         if mix_bool[i]:
+
+
+
+
+
+
+
 def normalize(in_arr, norm_vector):
     """returns normalized vector in same shape as input based on the normalization vector
     vector length must match input row length"""
@@ -151,10 +231,10 @@ with tf.name_scope('train'):
     train_step = tf.train.AdamOptimizer(epsilon = .00001).minimize(cross_entropy)
     # train_step = tf.train.GradientDescentOptimizer(.9).minimize(cross_entropy)
 
-ins = df_input.values
+ins_unnorm = df_input.values
 norm_vector_in = np.linalg.norm(ins, axis = 0, ord = 2)/(ins.shape[1])
 
-ins = ins / norm_vector_in
+ins = ins_unnorm / norm_vector_in
 
 outs = df_output.values #pd df to numpy
 norm_vector_out = np.linalg.norm(outs, axis = 0, ord = 2)/(outs.shape[1])
@@ -197,7 +277,7 @@ if True:    #do or do not run training
 
     loop_start = timer()
 
-    for i in range(5000): #50000):
+    for i in range(50000): #50000):
         sess.run(train_step, feed_dict={x: ins[train_i],
                                         y_: outs[train_i]})
 
@@ -252,7 +332,8 @@ if True:    #do or do not run training
     out_weights = [1,1,1]
 
 
-
+MIXTURES SPACE GENERATION SUBTRACT FROM POOL!
+proportional weighting for categorical in improved design space
 
 
 
