@@ -108,8 +108,8 @@ def perimeter_array(mins, maxes, types):
     # for t in itertools.product(*pairs_arr):  ###fast flatten of rows, no needed
     #     print(t)
 
-def design_space_sample_new(mins, maxes, types, samples, mix_sum):
-    """replaces design_space_sample
+def design_space_sample(mins, maxes, types, samples, mix_sum):
+    """replaces old design_space_sample
 
     inputs: mins -ndarray of floats representing min value of space
     maxs -ndarray representing max values of space
@@ -120,7 +120,6 @@ def design_space_sample_new(mins, maxes, types, samples, mix_sum):
     outputs a len(min) x samples
 
     """
-
     #create boolean arrays for types
     cat_bool = (types == 'CATEGORICAL')
     cont_bool = (types == 'CONTINUOUS')
@@ -136,7 +135,7 @@ def design_space_sample_new(mins, maxes, types, samples, mix_sum):
         if cat_bool[i]:
             cat_min = np.int(np.round(mins[i]))
             cat_max = np.int(np.round(maxes[i]))
-            cat_level_range = range(cat_min, cat_max)
+            cat_level_range = range(cat_min, cat_max +1) #+1 for non-inclusivity of range
             cat_levels.append(cat_level_range)
         else:
             cat_levels.append(0) #placeholder 0
@@ -144,16 +143,16 @@ def design_space_sample_new(mins, maxes, types, samples, mix_sum):
     for i, type in enumerate(types):
         if type == 'CONTINUOUS':
             out_arr[i, :] = np.random.uniform(mins[i],maxes[i],[1,samples])
-        if type == 'CATEGPROCAL':
+        if type == 'CATEGORICAL':
             out_arr[i, :] = np.random.choice(cat_levels[i],size = [1,samples])
         if type == 'MIX':
             out_arr[i, :] = np.random.uniform(mins[i], maxes[i], [1, samples]) #need to normalize to mix sum
 
     mix_sub_array = out_arr[mix_bool]
     mix_sub_sums = np.sum(mix_sub_array, axis = 0)
-    mix_sub_norm = mix_sub_sums / mix_sum
-    out_arr[mix_bool] = mix_sub_sums / mix_sub_norm  ####math almost certainly needs debugging
-
+    mix_sub_norm = mix_sum / mix_sub_sums
+    out_arr[mix_bool] = mix_sub_array * mix_sub_norm  # ###works, but doesn't respect ranges exactly.
+                                                    # will respect ranges when generating new experiments
     return out_arr
 
 
@@ -183,209 +182,4 @@ def de_normalize(in_arr, norm_vector):
     in_arr = in_arr * norm_vector  # normalize
     # in_arr = in_arr.transpose()
     return in_arr
-#
-#
-# num_factors = df_input.shape[1]
-# num_outs = df_output.shape[1]
-#
-# # print(num_factors)
-# # print(num_outs)
-#
-# #####Generating predictive expression#####
-# #####Model to fit prediction expression
-# sess = tf.InteractiveSession()
-#
-# #####design space optimization model#########
-# min_bias = tf.get_variable('min_bias',[num_factors], dtype=tf.float32)
-# max_bias = tf.get_variable('max_bias',[num_factors], dtype=tf.float32)
-#
-# min_constant = tf.placeholder(tf.float32, shape=[None, num_factors])
-# max_constant = tf.placeholder(tf.float32, shape=[None, num_factors])
-#
-#
-# x = tf.placeholder(tf.float32, shape = [None, num_factors]) #width of input
-# y_ = tf.placeholder(tf.float32, shape = [None, num_outs]) #width of output
-#
-#
-# layer1 = tf.layers.dense(x, num_factors, tf.nn.softplus, bias_initializer=tf.random_uniform_initializer)
-# layer2 = tf.layers.dense(layer1, num_factors, tf.nn.softplus, bias_initializer=tf.random_uniform_initializer)
-# layer3 = tf.layers.dense(layer2, num_factors, tf.nn.softplus, bias_initializer=tf.random_uniform_initializer)
-# layer4 = tf.layers.dense(layer3, num_factors, tf.nn.softplus, bias_initializer=tf.random_uniform_initializer)
-# layer5 = tf.layers.dense(layer4, num_factors, tf.nn.softplus, bias_initializer=tf.random_uniform_initializer)
-#
-# y = tf.layers.dense(layer5, num_outs, tf.nn.softplus)
-#
-# asdf=1
-# with tf.name_scope('losses'):
-#     cross_entropy = tf.losses.huber_loss(labels = y_, predictions = y)
-#
-#     # perimeter = perimeter_array(tf.add(mins, min_bias).eval(), tf.add(maxes, max_bias).eval(), types)
-#     # perimeter_norm = normalize(perimeter, norm_vector_in)
-#     # print(perimeter_norm.shape)
-#     #
-#     # value_perimeter = sess.run(y, {x: perimeter_norm[:]})
-#     # opt_perimeter = np.mean(value_perimeter * out_weights)
-#     #
-#     # space_loss = opt_perimeter - opt_avg_adj
-#     # print(space_loss)
-#     # space_loss = 'function of (y)' \
-#     #              ' placeholder for optimzlity criterion' \
-#     #              'bias_min' \
-#     #              'bias_max' \
-#     #              'mins' \
-#     #              'maxs' \
-#     #              'types'
-#
-#     space_loss = tf.subtract(tf.subtract(min_bias,mins), tf.subtract(max_bias,asdf))
-#
-#
-# with tf.name_scope('train'):
-#     train_step = tf.train.AdamOptimizer(epsilon = .000001).minimize(cross_entropy)
-#     train_step_space = tf.train.AdamOptimizer(epsilon = .000001).minimize(space_loss)
-#     # train_step = tf.train.GradientDescentOptimizer(.9).minimize(cross_entropy)
-#
-# if False:    #do or do not run training
-#
-#     sess.run(tf.global_variables_initializer())
-#
-#     test_i = list()
-#     train_i = list()  ###empty the ins and outs index lists
-#
-#     for index, _ in enumerate(ins):
-#         p = np.random.random()
-#         if p > 0.6:  # split train / test
-#             test_i.append(index)
-#         else:
-#             train_i.append(index)
-#
-#     loop_start = timer()
-#
-#     for i in range(500): #50000):
-#         sess.run(train_step, feed_dict={x: ins[train_i],
-#                                         y_: outs[train_i]})
-#
-#         if i % 25 == 0 or i == 2 or i == 4 or i == 10: #batching
-#             test_i = list()
-#             train_i = list() ###empty the ins and outs index lists
-#
-#             for index, _ in enumerate(ins):
-#                 p = np.random.random()
-#                 if p > 0.6: #split train / test
-#                     test_i.append(index)
-#                 else:
-#                     train_i.append(index)
-#
-#             train_error = cross_entropy.eval(feed_dict={x: ins[train_i], y_: outs[train_i]})
-#             test_error = cross_entropy.eval(feed_dict={x: ins[test_i], y_: outs[test_i]})
-#
-#         if i%500 == 0:
-#             loop_end = timer()
-#             delta_t = loop_end - loop_start
-#             print('step {0}, training error {1}, test error {2} in {3}-seconds'.format(i, train_error, test_error, delta_t))
-#             # prediction = sess.run(y,{x: ins[:]}) * norm_vector_out
-#             # print(ins[:].shape)
-#             # print(parim_vals[:])
-#
-#     # out_weights = [1,1,-1]
-#     #
-#     # parim_vals = perimeter_array(mins, maxes, types)
-#     # perim_eval = sess.run(y,{x: parim_vals[:]}) # * norm_vector_out
-#     #
-#     # rand_vals = design_space_sample(mins, maxes, 2500)
-#     # rand_vals = normalize(rand_vals, norm_vector_in)
-#     # average_eval = sess.run(y, {x: rand_vals[:]})
-#     #
-#     # optimality_avg = np.mean(average_eval * out_weights) #weights normalized values and averages
-#     # opt_avg_adj = optimality_avg * 1.25  ##factor to increase target average for perimeter
-#
-#     for i in range(10):
-#         sess.run(tf.global_variables_initializer())
-#
-#         sess.run(train_step_space, feed_dict={x: ins[train_i],
-#                                         y_: outs[train_i]})
-#     print(space_loss.eval(feed_dict = {}))
-#
-#
-#     print(y)
-#
-#     # for i in range(10):
-#     #     perimeter = perimeter_array(tf.add(mins, min_bias).eval(),tf.add(maxes, max_bias).eval(),types)
-#     #     print(perimeter.shape)
-#     #
-#     #     perimeter_norm = normalize(perimeter, norm_vector_in)
-#     #     print(perimeter_norm.shape)
-#     #
-#     #     value_perimeter = sess.run(y, {x: perimeter_norm[:]})
-#     #     opt_perimeter = np.mean(value_perimeter*out_weights)
-#     #
-#     #     space_loss = opt_perimeter - opt_avg_adj
-#     #     print(space_loss)
-#     #
-#     # print(opt_avg_adj)
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#     #
-#     # test1 = tf.add(mins, min_bias)
-#     # test2 = tf.add(mins, min_bias)
-#     # test1 = de_normalize(test1, norm_vector_in)
-#     # test2 = de_normalize(test2, norm_vector_in)
-#     #
-#     # PA = perimeter_array(test1.eval(),test2.eval(),types)
-#     # print(PA)
-#     # print(PA.shape)
-#     # PA2 = perimeter_array(mins,maxes,types)
-#     # print(PA2)
-#     # print(PA2.shape)
-#     # print(test)
-#     # print(test.eval())
-#
-#     # opt_list = list()
-#     # for i in range(100):
-#     #
-#     #     rand_vals = design_space_sample(mins, maxes, 1000)
-#     #     rand_vals = normalize(rand_vals, norm_vector_in)
-#     #
-#     #     average_eval = sess.run(y,{x: rand_vals[:]})
-#     #     # print(average_eval)
-#     #     average_out = np.mean(average_eval, axis=0)
-#     #     optimality_avg = np.mean(average_out * out_weights)
-#     #     average_out = de_normalize(average_out, norm_vector_out)
-#     #     # print(average_out)
-#     #     opt_list.append(optimality_avg)
-#     # print(np.std(opt_list))
-#     # print(np.mean(opt_list))
-#
-#
-#
-#
-#     #
-#     # def testprint(perim_eval, out_weights):
-#     #     asdf = perim_eval*out_weights
-#     #     print(asdf)
-#
-#     # testprint(perim_eval, out_weights)
-#     # print(perim_eval*out_weights)
-#     # print(perim_eval.shape)
-#
-#
-#     # print(prediction)
-#     #         print(100 * (prediction[1] - (outs[1] * norm_vector_out))/(outs[1] * norm_vector_out))
-#     # print(prediction[1,1])
-#
-#
-#
-#
-#
-#
-# # run prediction over whole range???
-# # optimize for predictions for weighted sum of each variable that is in the ~335+ percentile +/-
+
