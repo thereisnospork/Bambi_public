@@ -1,52 +1,10 @@
 # import pandas as pd
 import numpy as np
 # import scipy as sp
-# import tensorflow as tf
+import tensorflow as tf
 import itertools
+from scipy.spatial.distance import pdist, squareform
 # from timeit import default_timer as timer
-
-# tf.enable_eager_execution()
-# start_nontf = timer()
-# ####################READ IN CSV PARTITION INTO HEAD BODY INPUT OUTPUTS##################
-
-# df = pd.read_csv(r'C:\Users\georg\PycharmProjects\Bambi\bambi_test2.csv')
-# df = df.drop(columns = ['Factor Name',]) #drop experiment run id.
-#
-# # print(df)
-#
-# df_head = df[0:3].reset_index().copy()
-# df_body = df[3:].reset_index().copy()
-# df_body = df_body.apply(pd.to_numeric, errors = 'ignore')
-#
-# # print(df_head)
-#
-# df_output = df_body.filter(regex=('OUT.*')) #selects OUT**** to create DF of outputs
-# df_output = df_output.apply(pd.to_numeric, errors = 'ignore')
-#
-# # df_input = df_body[df_body.columns.difference(df_output.columns)] #strips outputs to create input DF
-# df_input = df_body.drop(columns=['index',])
-# df_input = df_input.drop(columns=list(df_output)) #drop output column names
-#
-# # print(df_input)
-#
-# df_head = df_head.drop(columns=['index',])
-# df_head = df_head.drop(columns=list(df_output))
-#
-# # print(df_head)
-#
-# types = df_head.loc[[0]].values.flatten()
-# mins = df_head.loc[[1]].values.flatten().astype(np.float32)  # rows to #'s in np array
-# maxes = df_head.loc[[2]].values.flatten().astype(np.float32)
-#
-# ins = df_input.values
-# norm_vector_in = np.linalg.norm(ins, axis = 0, ord = 2)/(ins.shape[1])
-#
-# ins = ins / norm_vector_in
-#
-# outs = df_output.values #pd df to numpy
-# norm_vector_out = np.linalg.norm(outs, axis = 0, ord = 2)/(outs.shape[1])
-# outs = outs / norm_vector_out
-
 
 def rotate(l, x):
     x = x%len(l)
@@ -155,6 +113,86 @@ def design_space_sample(mins, maxes, types, samples, mix_sum):
                                                     # will respect ranges when generating new experiments
     return out_arr
 
+def design_space_sample_exact(mins, maxes, types, samples, mix_sum):
+    """
+    comparable to design_space_sample except! that it fully respects mixture bounds.
+
+    :param mins: ndarray 1d of mins for factors
+    :param maxes: ndarray 1d of maxes for factors
+    :param types: ndarray of str for type of factor.  continuous categorical mix are the allowed choices
+    :param samples: how many designs to generate
+    :param mix_sum: sum of mixture variables, found by mix_sum method
+    :return: len(mins) x samples ndarray of floats representing samples chosen random uniformely from design space
+    """
+
+    raw_design = design_space_sample(mins, maxes, types, samples, mix_sum)
+    mix_bool = (types == 'MIX')
+    mix_sub_array = raw_design[mix_bool]
+    mix_mins = mins[mix_bool]
+    mix_maxes = maxes[mix_bool]
+
+    flag = True #continues through array over and over till no values found to be excessive
+    while flag:
+        flag = False
+        for i, column in enumerate(mix_sub_array):
+            for n, item in enumerate(column):
+                if item < mix_mins[i]:
+                    mix_sub_array[i,n] = mix_mins[i]+item/mix_mins[i]
+                    flag = True
+                if item > mix_maxes[i]:
+                    mix_sub_array[i, n] = mix_maxes[i]-item/mix_maxes[i]
+                    flag = True
+
+    #renormalize
+
+        mix_sub_sums = np.sum(mix_sub_array, axis=0)
+        mix_sub_norm = mix_sum / mix_sub_sums
+
+    raw_design[mix_bool] = mix_sub_array * mix_sub_norm
+
+    return raw_design
+
+
+def optimal_design(mins, maxes, types, k, mix_sum, norm_ins):
+    """
+    returns a space-averaged design, normalizing respective dimensions,
+    between mins and maxes respecting mixtures/categories
+    returns unnormalized
+    :param mins:
+    :param maxes:
+    :param types:
+    :param k:
+    :param mix_sum:
+    :param norm_ins:
+    :return:
+    """
+    #initial designs to trim:
+    top_half_indicies = list(range(k*2))
+    unnormed_samples = design_space_sample_exact(mins, maxes, types, k*2, mix_sum)
+
+    not_cat_bool = (types != 'CATEGORICAL') #dropping categorical factors from distance calcs.
+    # ratios of cat will be determined from design_space_sample_exact method - needs refining to account for cat variables
+
+
+    # norm_samples = normalize(init_samples, norm_ins)
+    #loop it!
+    for n in range(200):
+        print(n)
+        kept_samples = unnormed_samples[:,top_half_indicies]
+        new_samples = design_space_sample_exact(mins, maxes, types, k, mix_sum) #cpu efficiency can be gained here with better slicing to prevent reallocation with hstack!
+        unnormed_samples = np.hstack((kept_samples, new_samples))
+
+        normed = normalize(unnormed_samples, norm_ins)
+        distances = pdist(np.transpose(normed[not_cat_bool]))  # m observation by n samples, so transpose input
+        distances = squareform(distances)
+        dist_totals = np.sum(distances, axis=0)  # matrix is symmetrical, so axis is irrelevant
+        _, top_half_indicies = tf.nn.top_k(dist_totals, k)
+        top_half_indicies = top_half_indicies.eval() #tensor to numpy array conversion #has to be here due to looping
+
+    normed = unnormed_samples[:,top_half_indicies]
+
+    return normed #return k samples the furthest away from all others.
+
 
 def mix_sum(ins, types):
     """ returns float representing total amount of mix - calculated from data
@@ -168,6 +206,25 @@ def mix_sum(ins, types):
     return np.max(ins_mix)  #max value of summation
 
 
+def mins_maxes(ins):
+    """returns two ndarrays representing mins, maxes for the subsetted
+    design space from a selected list of experiments
+    intended to take non-normalized values
+
+    ins: ndarray ins with experimental conditions, shape [num_factors, num_samples]
+
+    out: mins, maxes : two ndarray of floats.  categorical mins/maxes will be nominally integers (1.0, 2.0, etc.)
+    """
+    mins = np.zeros(ins.shape[0])
+    maxes = np.zeros(ins.shape[0]) #preallocate outputs
+
+    for i, _ in enumerate(ins):
+        mins[i] = np.min(ins[i])
+        maxes[i] = np.max(ins[i])
+
+    return mins, maxes
+
+
 def normalize(in_arr, norm_vector):
     """returns normalized vector in same shape as input based on the normalization vector
     vector length must match input row length"""
@@ -179,7 +236,7 @@ def normalize(in_arr, norm_vector):
 def de_normalize(in_arr, norm_vector):
     """returns de-normalized array in same shape as input based on the normalization vector
     vector length must match input row length"""
-    in_arr = in_arr * norm_vector  # normalize
+    in_arr = in_arr * norm_vector[:, np.newaxis]  # normalize
     # in_arr = in_arr.transpose()
     return in_arr
 
