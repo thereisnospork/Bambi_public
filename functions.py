@@ -91,7 +91,7 @@ def design_space_sample(mins, maxes, types, samples, mix_sum):
 
     for i, each in enumerate(mins): #generates list of range interators of valid categorical values for each cat factor
         if cat_bool[i]:
-            cat_min = np.int(np.round(mins[i]))
+            cat_min = np.int(np.round(mins[i]))  #maybe rewrite with cat_level funciton/dict method?
             cat_max = np.int(np.round(maxes[i]))
             cat_level_range = range(cat_min, cat_max +1) #+1 for non-inclusivity of range
             cat_levels.append(cat_level_range)
@@ -113,7 +113,7 @@ def design_space_sample(mins, maxes, types, samples, mix_sum):
                                                     # will respect ranges when generating new experiments
     return out_arr
 
-def design_space_sample_exact(mins, maxes, types, samples, mix_sum):
+def design_space_sample_exact(mins, maxes, types, samples, mix_sum, cat_ratio_dict = False):
     """
     comparable to design_space_sample except! that it fully respects mixture bounds.
 
@@ -125,9 +125,11 @@ def design_space_sample_exact(mins, maxes, types, samples, mix_sum):
     :return: len(mins) x samples ndarray of floats representing samples chosen random uniformely from design space
     """
 
-    raw_design = design_space_sample(mins, maxes, types, samples, mix_sum)
+    raw_design = design_space_sample(mins, maxes, types, samples, mix_sum, )
     mix_bool = (types == 'MIX')
+    cat_bool = (types == 'CATEGORICAL')
     mix_sub_array = raw_design[mix_bool]
+    cat_sub_array = raw_design[cat_bool]
     mix_mins = mins[mix_bool]
     mix_maxes = maxes[mix_bool]
 
@@ -136,12 +138,21 @@ def design_space_sample_exact(mins, maxes, types, samples, mix_sum):
         flag = False
         for i, column in enumerate(mix_sub_array):
             for n, item in enumerate(column):
-                if item < mix_mins[i]:
-                    mix_sub_array[i,n] = mix_mins[i]+item/mix_mins[i]
+                if item < mix_mins[i] or item > mix_maxes[i]:
+                    mix_sub_array[i,n] = np.random.uniform(mix_mins[i], mix_maxes[i])    #mix_mins[i]+item/(mix_mins[i]+1) #divide by zero potential error. maybe need to rethink formula here
                     flag = True
-                if item > mix_maxes[i]:
-                    mix_sub_array[i, n] = mix_maxes[i]-item/mix_maxes[i]
-                    flag = True
+        if cat_ratio_dict is not False:
+
+            for i, _ in enumerate(types):
+                if cat_bool[i]:
+                    cat_levels = cat_ratio_dict[i].keys()
+                    cat_levels = list(map(np.int, cat_levels))
+                    cat_p = cat_ratio_dict[i].values()
+                    cat_p = list(cat_p)
+                    cat_p = cat_p / np.sum(cat_p)
+                    raw_design[i,:] = np.random.choice(cat_levels, p=cat_p)
+
+
 
     #renormalize
 
@@ -153,7 +164,7 @@ def design_space_sample_exact(mins, maxes, types, samples, mix_sum):
     return raw_design
 
 
-def optimal_design(mins, maxes, types, k, mix_sum, norm_ins):
+def optimal_design(mins, maxes, types, k, mix_sum, norm_ins, cat_dict):
     """
     returns a space-averaged design, normalizing respective dimensions,
     between mins and maxes respecting mixtures/categories
@@ -167,7 +178,7 @@ def optimal_design(mins, maxes, types, k, mix_sum, norm_ins):
     :return:
     """
     #initial designs to trim:
-    top_half_indicies = list(range(k*2))
+    top_half_indicies = np.arange(0,k,1)
     unnormed_samples = design_space_sample_exact(mins, maxes, types, k*2, mix_sum)
 
     not_cat_bool = (types != 'CATEGORICAL') #dropping categorical factors from distance calcs.
@@ -177,10 +188,11 @@ def optimal_design(mins, maxes, types, k, mix_sum, norm_ins):
     # norm_samples = normalize(init_samples, norm_ins)
     #loop it!
     for n in range(200):
-        print(n)
-        kept_samples = unnormed_samples[:,top_half_indicies]
-        new_samples = design_space_sample_exact(mins, maxes, types, k, mix_sum) #cpu efficiency can be gained here with better slicing to prevent reallocation with hstack!
-        unnormed_samples = np.hstack((kept_samples, new_samples))
+        # print(n)
+        # kept_samples = unnormed_samples[:,top_half_indicies]
+        new_samples = design_space_sample_exact(mins, maxes, types, k, mix_sum, cat_ratio_dict= cat_dict)
+        unnormed_samples[:,~top_half_indicies] = new_samples
+            # = np.hstack((kept_samples, new_samples))
 
         normed = normalize(unnormed_samples, norm_ins)
         distances = pdist(np.transpose(normed[not_cat_bool]))  # m observation by n samples, so transpose input
@@ -239,4 +251,34 @@ def de_normalize(in_arr, norm_vector):
     in_arr = in_arr * norm_vector[:, np.newaxis]  # normalize
     # in_arr = in_arr.transpose()
     return in_arr
+
+def cat_ratios(ins, types, mins, maxes):
+    """
+    calculates relative percentages as decimal of each level of each categorical factor
+    in a set of experiments(ins).  Intended for weighting of categorical factors in
+    optimal design generation.
+    :param ins: ndarray of experiments, inten
+    :param types:
+    :return: dict of dicts, first key is integer referring to which column the categorical value is
+                first value is dict of values: probabilities for that column
+    """
+    cat_bool = (types == 'CATEGORICAL')
+    dict_of_cat_ratio_dict = dict()
+    for i, each in enumerate(types):
+        # print(i)
+        # print(cat_bool[i])
+        if cat_bool[i]:
+            levels_i = range(np.int(mins[i]), np.int(maxes[i])+1)
+            temp = dict()
+            for level in levels_i:
+                temp[level] = 0 #incase next line defaults to False and doesn't eval
+                temp[level] = (ins[i] == level).sum()
+            dict_of_cat_ratio_dict[i] = temp
+            #
+            # unique, counts = np.unique(ins[i], return_index=True)
+            # counts = counts / np.sum(counts)  # normalize to a percentage
+            # dict_of_cat_ratio_dict[i] = (dict(zip(unique, counts)))  #
+
+    print(dict_of_cat_ratio_dict)
+    return dict_of_cat_ratio_dict
 

@@ -1,16 +1,15 @@
 import pandas as pd
 import numpy as np
-import scipy as sp
 import tensorflow as tf
-import itertools
-from functions import design_space_sample, mix_sum, normalize, de_normalize
+from functions import design_space_sample, mix_sum, normalize, cat_ratios, \
+    de_normalize, mins_maxes, optimal_design
 from timeit import default_timer as timer
 
-# start_nontf = timer()
 # ####################READ IN CSV PARTITION INTO HEAD BODY INPUT OUTPUTS##################
 
-df = pd.read_csv(r'C:\Users\georg\PycharmProjects\Bambi\bambi_test2.csv')
+df = pd.read_csv(r'C:\Users\georg\PycharmProjects\Bambi\bambi_testing_2cat.csv')
 df = df.drop(columns = ['Factor Name',]) #drop experiment run id.
+df_cols_in_order =  df.columns.values.tolist()
 
 # print(df)
 
@@ -27,7 +26,6 @@ df_output = df_output.apply(pd.to_numeric, errors = 'ignore')
 df_input = df_body.drop(columns=['index',])
 df_input = df_input.drop(columns=list(df_output)) #drop output column names
 
-# print(df_input)
 
 df_head = df_head.drop(columns=['index',])
 df_head = df_head.drop(columns=list(df_output))
@@ -42,15 +40,13 @@ maxes = df_head.loc[[2]].values.flatten().astype(np.float32)
 num_factors = df_input.shape[1]
 num_outs = df_output.shape[1]
 
-# print(num_factors)
-# print(num_outs)
 
-#####Generating predictive expression#####
-#####Model to fit prediction expression
+# ####Generating predictive expression#####
+# ####Model to fit prediction expression
 sess = tf.InteractiveSession()
 
-x = tf.placeholder(tf.float32, shape = [None,num_factors]) #width of input
-y_ = tf.placeholder(tf.float32, shape = [None,num_outs]) #width of output
+x = tf.placeholder(tf.float32, shape = [None,num_factors])  # width of input
+y_ = tf.placeholder(tf.float32, shape = [None,num_outs])  # width of output
 
 
 layer1 = tf.layers.dense(x, num_factors, tf.nn.softplus, bias_initializer=tf.random_uniform_initializer)
@@ -65,7 +61,7 @@ with tf.name_scope('cross_entropy'):
     cross_entropy = tf.losses.huber_loss(labels = y_, predictions = y)
 
 with tf.name_scope('train'):
-    train_step = tf.train.AdamOptimizer(epsilon = .00001).minimize(cross_entropy)
+    train_step = tf.train.AdamOptimizer(learning_rate=.00005, epsilon = .00000001).minimize(cross_entropy)
     # train_step = tf.train.GradientDescentOptimizer(.9).minimize(cross_entropy)
 
 ins_unnorm = df_input.values
@@ -107,14 +103,14 @@ if True:    #do or do not run training
 
     for index, _ in enumerate(ins):
         p = np.random.random()
-        if p > 0.6:  # split train / test
+        if p > 0.8:  # split train / test
             test_i.append(index)
         else:
             train_i.append(index)
 
     loop_start = timer()
 
-    for i in range(50000): #50000):
+    for i in range(100000): #50000):
         sess.run(train_step, feed_dict={x: ins[train_i],
                                         y_: outs[train_i]})
 
@@ -124,7 +120,7 @@ if True:    #do or do not run training
 
             for index, _ in enumerate(ins):
                 p = np.random.random()
-                if p > 0.6: #split train / test
+                if p > 0.8: #split train / test
                     test_i.append(index)
                 else:
                     train_i.append(index)
@@ -149,49 +145,55 @@ if True:    #do or do not run training
     # print(norm_vector_in)
     # print(perim_eval)
 
-    def testprint(perim_eval, out_weights):
-        asdf = perim_eval*out_weights
-        print(asdf)
 
     out_weights = [1,1,1]
 
-samples = max(num_factors ** 2 * 1000, 5000000)
+
+# generate samples over design space
+samples = max(num_factors ** 2 * 1000, 10000000)
 
 space_sample = design_space_sample(mins, maxes, types, samples, mix_sum(ins_unnorm, types))
 space_sample_norm = normalize(space_sample, norm_vector_in)
 space_sample_norm = np.transpose(space_sample_norm)
-sample_start = timer()
-
+# Evaluate samples according to TF model
 space_sample_eval = sess.run(y, {x: space_sample_norm[:]})
-# space_sample_eval = np.transpose(space_sample_eval)
+
+#weight and sum the resulted models
 weighted_eval = np.sum(space_sample_eval * out_weights, axis = 1)
-sample_end = timer()
-d_t_sample = sample_end-sample_start
 
-print(weighted_eval)
-print(weighted_eval.shape)
-print(type(weighted_eval))
-print(str(d_t_sample)+' seconds elapsed evaling sampling array')
-
-start = timer()
-_, top_index = tf.nn.top_k(weighted_eval, samples//20) #top 5% of samples
-stop = timer()
-print(top_index.eval())
-print(str(start-stop) + ' seconds to sort')
-
+#select the top X percent or n samples that were evaluated
+werty, top_index = tf.nn.top_k(weighted_eval, 100000)#samples//20000) #top 0.5% of samples
 best_ins = space_sample[:,top_index.eval()]
-print(best_ins)
-print(best_ins.shape)
+# print(top_index.eval())
+# print(werty.eval())
+# print(best_ins)
 
-#need function to return experiments mins, maxes from best_ins, types
-#weight categorical by % found in best
-#need function to wrap everything back up into a dataframe
+#generate new mins, maxes based off of monte carlo evaluation above
+best_mins, best_maxes = mins_maxes(best_ins)
 
-#
-# MIXTURES SPACE GENERATION SUBTRACT FROM POOL!
-# proportional weighting for categorical in improved design space
+#generate ratios for cat variables based off of monte carlo evaluation above
 
+#wrap this in function after it works
 
+# def
+# cat_bool = (types == 'CATEGORICAL')
+# cat_levels = dict()
+# list_of_cat_ratio_dict = list()
+# for i, each in enumerate(types):
+#     # print(i)
+#     # print(cat_bool[i])
+#     if cat_bool[i]:
+#         unique, counts = np.unique(best_ins[i], return_index = True)
+#         counts = counts/np.sum(counts) #normalize to a percentage
+#         list_of_cat_ratio_dict.append(dict(zip(unique, counts))) #
+# print(list_of_cat_ratio_dict)
 
-# run prediction over whole range???
-# optimize for predictions for weighted sum of each variable that is in the ~335+ percentile +/-
+cat_dict = cat_ratios(best_ins, types, mins, maxes)
+
+new_experiments = optimal_design\
+    (best_mins, best_maxes, types, 40,  mix_sum(ins_unnorm, types), norm_vector_in, cat_dict) # just base mins/maxes right now for debugging!
+
+out_df = pd.DataFrame(data = np.transpose(new_experiments), columns = df_head.columns.values.tolist())
+out_df = df.append(out_df)
+out_df = out_df[df_cols_in_order]
+out_df.to_csv(r'C:\Users\georg\PycharmProjects\Bambi\out\bambi_test.csv', sep = ',')
