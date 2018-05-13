@@ -26,6 +26,7 @@ df_output = df_output.apply(pd.to_numeric, errors = 'ignore')
 df_input = df_body.drop(columns=['index',])
 df_input = df_input.drop(columns=list(df_output)) #drop output column names
 
+# print(df_input)
 
 df_head = df_head.drop(columns=['index',])
 df_head = df_head.drop(columns=list(df_output))
@@ -35,8 +36,43 @@ df_head = df_head.drop(columns=list(df_output))
 types = df_head.loc[[0]].values.flatten()
 mins = df_head.loc[[1]].values.flatten().astype(np.float32)  # rows to #'s in np array
 maxes = df_head.loc[[2]].values.flatten().astype(np.float32)
+labels = df_head.columns.values
+
+cat_bool = (types == 'CATEGORICAL')
+cat_encode_by_label = dict() # nested column -> key -> replace
+cat_decode_by_label = dict() #
+
+for i, label in enumerate(labels):  # recode all categorical factors to integer numeric
+    if cat_bool[i]:
+        existing = np.unique(df_input[label])
+        replacing = np.arange(0, len(existing))
+        mins[i] = 0
+        maxes[i] = len(existing)-1
+        print(existing)
+        print(maxes[i])
+        cat_encode_by_label[label] = dict(zip(existing, replacing))  # makes full nested dict for later use if needed
+        cat_decode_by_label[label] = dict(zip(replacing, existing))
+        df_input[label] = df_input[label].map(cat_encode_by_label[label])
+
+        # print(df_input)
 
 
+        # cat_replaced_by_index[i] =  # generates matching 0 - x range as ndarray to labels dict
+        # cat_replaced_by_index[i] = np.arange(0, len(cat_values_by_index[i])) # generates matching 0 - x range as ndarray to labels dict
+
+
+# df_input.replace()
+
+# ###mins/maxes might break here for cat values.
+# df_input.replace(cat_encode_by_label, inplace=True, method = 'ffill')
+
+# print(df_input)
+
+
+# asdf = np.unique(df_input[labels[1]]) # all unique entries in a column of data
+#
+# print(asdf)
+# print(type(asdf))
 num_factors = df_input.shape[1]
 num_outs = df_output.shape[1]
 
@@ -65,6 +101,9 @@ with tf.name_scope('train'):
     # train_step = tf.train.GradientDescentOptimizer(.9).minimize(cross_entropy)
 
 ins_unnorm = df_input.values
+
+
+
 norm_vector_in = np.linalg.norm(ins_unnorm, axis = 0, ord = 2)/(ins_unnorm.shape[1])
 
 ins = ins_unnorm / norm_vector_in
