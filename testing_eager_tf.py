@@ -84,7 +84,7 @@ if True:  # run training
     train_loss_results = []
     train_accuracy_results = []
 
-    num_epochs = 1000
+    num_epochs = 100000
 
 
     loop_start = timer()

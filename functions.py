@@ -274,11 +274,7 @@ def cat_ratios(ins, types, mins, maxes):
                 temp[level] = 0 #incase next line defaults to False and doesn't eval
                 temp[level] = (ins[i] == level).sum()
             dict_of_cat_ratio_dict[i] = temp
-            #
-            # unique, counts = np.unique(ins[i], return_index=True)
-            # counts = counts / np.sum(counts)  # normalize to a percentage
-            # dict_of_cat_ratio_dict[i] = (dict(zip(unique, counts)))  #
 
-    print(dict_of_cat_ratio_dict)
+
+    # print(dict_of_cat_ratio_dict)
     return dict_of_cat_ratio_dict
-

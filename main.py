@@ -21,6 +21,9 @@ df_body = df_body.apply(pd.to_numeric, errors = 'ignore')
 
 df_output = df_body.filter(regex=('OUT.*')) #selects OUT**** to create DF of outputs
 df_output = df_output.apply(pd.to_numeric, errors = 'ignore')
+df_out_head = df_head.filter(regex=('OUT.*')) #selects OUT**** to create DF of outputs
+df_out_head = df_out_head.fillna(value = 1) # sets default value for out weights to 1 if not input by user
+print(df_out_head)
 
 # df_input = df_body[df_body.columns.difference(df_output.columns)] #strips outputs to create input DF
 df_input = df_body.drop(columns=['index',])
@@ -37,6 +40,9 @@ types = df_head.loc[[0]].values.flatten()
 mins = df_head.loc[[1]].values.flatten().astype(np.float32)  # rows to #'s in np array
 maxes = df_head.loc[[2]].values.flatten().astype(np.float32)
 labels = df_head.columns.values
+out_weights = df_out_head.loc[[2]].values.flatten().astype(np.float32)
+
+# print(out_weights)
 
 cat_bool = (types == 'CATEGORICAL')
 cat_encode_by_label = dict() # nested column -> key -> replace
@@ -48,8 +54,6 @@ for i, label in enumerate(labels):  # recode all categorical factors to integer 
         replacing = np.arange(0, len(existing))
         mins[i] = 0
         maxes[i] = len(existing)-1
-        print(existing)
-        print(maxes[i])
         cat_encode_by_label[label] = dict(zip(existing, replacing))  # makes full nested dict for later use if needed
         cat_decode_by_label[label] = dict(zip(replacing, existing))
         df_input[label] = df_input[label].map(cat_encode_by_label[label])
@@ -174,7 +178,6 @@ if True:    #do or do not run training
             # prediction = sess.run(y,{x: ins[:]}) * norm_vector_out
             # print(ins[:].shape)
             # print(parim_vals[:])
-    out_weights = [1,2,3]
 
     # perim_eval = sess.run(y,{x: parim_vals[:]}) # * norm_vector_out
     # perim_eval = np.asarray(perim_eval)
@@ -185,7 +188,6 @@ if True:    #do or do not run training
     # print(perim_eval)
 
 
-    out_weights = [1,1,1]
 
 
 # generate samples over design space
@@ -233,6 +235,20 @@ new_experiments = optimal_design\
     (best_mins, best_maxes, types, 40,  mix_sum(ins_unnorm, types), norm_vector_in, cat_dict) # just base mins/maxes right now for debugging!
 
 out_df = pd.DataFrame(data = np.transpose(new_experiments), columns = df_head.columns.values.tolist())
+
+#recode categorical factors:
+
+for i, label in enumerate(labels):  # recode all categorical factors to integer numeric
+    if cat_bool[i]:
+        # existing = np.unique(df_input[label])  #created above, why duplicate
+        # replacing = np.arange(0, len(existing))
+        mins[i] = 0
+        maxes[i] = len(existing)-1
+
+        # cat_encode_by_label[label] = dict(zip(existing, replacing))  # makes full nested dict for later use if needed
+        # cat_decode_by_label[label] = dict(zip(replacing, existing)) #created above
+        df_input[label] = df_input[label].map(cat_decode_by_label[label])
+
 out_df = df.append(out_df)
 out_df = out_df[df_cols_in_order]
 out_df.to_csv(r'C:\Users\georg\PycharmProjects\Bambi\out\bambi_test.csv', sep = ',')
