@@ -169,14 +169,15 @@ def optimal_design(mins, maxes, types, k, mix_sum, norm_ins, cat_dict):
     returns a space-averaged design, normalizing respective dimensions,
     between mins and maxes respecting mixtures/categories
     returns unnormalized
-    :param mins:
-    :param maxes:
+    :param mins: 1-d ndarray of mins for each factor
+    :param maxes: 1-d ndarray of maxes for each factor, inc. cat/mix
     :param types:
-    :param k:
+    :param k: number of new experiments to output
     :param mix_sum:
     :param norm_ins:
-    :return:
+    :return: ndarray of new experiments inside prescribed bounds
     """
+
     #initial designs to trim:
     top_half_indicies = np.arange(0,k,1)
     unnormed_samples = design_space_sample_exact(mins, maxes, types, k*2, mix_sum)
