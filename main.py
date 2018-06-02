@@ -5,7 +5,6 @@ from functions import design_space_sample, mix_sum, normalize, cat_ratios, \
     de_normalize, mins_maxes, optimal_design
 from timeit import default_timer as timer
 
-
 # ####################READ IN CSV PARTITION INTO HEAD BODY INPUT OUTPUTS##################
 
 def anal(df, num_requested):
@@ -119,23 +118,6 @@ def anal(df, num_requested):
 
     # print(ins)
 
-    #####design space optimization model#########
-    min_bias = tf.get_variable('min_bias', [num_factors], dtype=tf.float32)
-    max_bias = tf.get_variable('max_bias', [num_factors], dtype=tf.float32)
-
-    min_constant = tf.placeholder(tf.float32, shape=[None, num_factors])
-    max_constant = tf.placeholder(tf.float32, shape=[None, num_factors])
-
-    # parim_vals = perimeter_array(mins,maxes,types)
-    # parim_vals = normalize(parim_vals, norm_vector_in)
-
-    # print(type(tf.add(mins,min_bias)))
-    # print(tf.add(mins,min_bias).eval())
-    # parim_vals2 = perimeter_array(np.add(mins,min_bias),
-    #                              np.add(maxes,max_bias),
-    #                              types)
-
-    # print(parim_vals)
 
     if True:  # do or do not run training
 
@@ -153,7 +135,7 @@ def anal(df, num_requested):
 
         loop_start = timer()
 
-        for i in range(100000):  # 50000):
+        for i in range(max(100000, num_factors*10000)):  # 50000):
             sess.run(train_step, feed_dict={x: ins[train_i],
                                             y_: outs[train_i]})
 
@@ -171,7 +153,7 @@ def anal(df, num_requested):
                 train_error = cross_entropy.eval(feed_dict={x: ins[train_i], y_: outs[train_i]})
                 test_error = cross_entropy.eval(feed_dict={x: ins[test_i], y_: outs[test_i]})
 
-            if i % 5000 == 0:
+            if i % 10000 == 0:
                 loop_end = timer()
                 delta_t = loop_end - loop_start
                 print('step {0}, training error {1}, test error {2} in {3}-seconds'.format(i, train_error, test_error,
@@ -222,6 +204,7 @@ def anal(df, num_requested):
     out_df = df.append(out_df)
     out_df = out_df[df_cols_in_order]
     out_df = out_df.reset_index(drop=True)
+    sess.close()
     return out_df
 
 
