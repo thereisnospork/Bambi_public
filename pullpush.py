@@ -1,13 +1,11 @@
-from time import time
 from time import sleep
 from datetime import datetime
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+import psycopg2
 import os
 from main import anal
 import pandas as pd
 from email_func import send_email
-import smtplib
 
 ###CONFIG###
 SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-wi4ll-never-guess'
@@ -15,19 +13,22 @@ SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
 SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:test1234@127.0.0.1:5432/gumdrop'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+wait_seconds = 60  # seconds per loop
+
 # test email:
 
-"test,this,is,a,csv,\n 1,2,3,4,5\n"
-send_email('test1','georLeonard@gmail.com', ['georLeonard@gmail.com',],'testing 1234 testing','nonsense')
-
 db = create_engine(SQLALCHEMY_DATABASE_URI)
+# conn = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
 
-####build query to check for untested data
+# cur = conn.cursor()
 
-while False:
+
+
+while True:
+
     data_conn = db.execute(
         """
-        SELECT data, user_id, num_requested, id FROM project_index 
+        SELECT data, user_id, num_requested, id, project_label FROM project_index 
         WHERE (analysis_in_progress = FALSE AND 
         analysis_complete = FALSE) 
         ORDER BY timestamp_created ASC 
@@ -44,6 +45,7 @@ while False:
             user_id = row[1]
             num_requested = row[2]
             id_ = row[3]
+            project_label = row[4]
 
         db.execute(
             """
@@ -51,15 +53,15 @@ while False:
             SET analysis_in_progress = TRUE
             WHERE id = {}
             """.format(id_))
-            ####query to change in_progress FLAG To TRUE
+        ####query to change in_progress FLAG To TRUE
         data_conn.close()
 
 
-    except: # Exception as e:
+    except:  # Exception as e:
         data_conn.close()
         print('no data available for analysis at {}'.format(datetime.utcnow()))
         # print(e)
-        sleep(180)
+        sleep(wait_seconds)
         continue
 
     ###restart timer and recall master function here!
@@ -74,10 +76,8 @@ while False:
         user_email_address = row[0]
     user_email.close()
 
-
     # print(data)
     in_df = pd.read_json(data, orient='split')
-
 
     try:
         out_df = anal(in_df, num_requested)
@@ -97,18 +97,45 @@ while False:
     # print(datetime.utcnow())
     # print(str(datetime.utcnow()))
 
+    # print(out_JSON)
+    # print(out_df)
+
+
+
     db.execute("""
     UPDATE project_index
     SET analysis_in_progress = FALSE,
     analysis_complete = TRUE,
     timestamp_updated = '{}',
-    results = '{}'
+    results = VALUES ('{}')
     WHERE id = {}
     """.format(datetime.utcnow(), out_JSON, id_))
 
-    print('Analysis of id# {} complete at {}'.format(id_,datetime.utcnow()))
+    message_text = """ 
+    Please find a csv including your data with {} suggested experiments 
+    Your data and results can be viewed at <PLACEHOLDER URL GOES HERE>""".format(num_requested)
 
-    data, user_id, num_requested, id_ = None, None, None, None #reset variables so they don't carry over  # call master function on data here
+    send_from = 'highratiotech@gmail.com'
+    subject = 'Analysis of Project:{} completed.'.format(project_label)
+    filename = '{}_{}.csv'.format(project_label, num_requested)
+    user_email_address = 'georLeonard@gmail.com'  # overwrite for testing purposes!!!
+
+    try:
+        send_email(user_email_address, send_from, subject,
+                   message_text, file=out_csv, filename=filename)
+    except Exception as e:
+        print(e)
+        sleep(10)
+        try:  # second attempt to send
+            send_email(user_email_address, send_from, subject,
+                       message_text, file=out_csv, filename=filename)
+        except:
+            q = None  # does nothing...
+
+    # send_email('georLeonard@gmail.com','georLeonard@gmail.com','asdf','test')
+    print('Analysis of id# {} complete at {}'.format(id_, datetime.utcnow()))
+
+    data, user_id, num_requested, id_, project_label, user_email_address = None, None, None, None, None, None  # reset variables so they don't carry over  # call master function on data here
 
     # print(type(out_csv))
     # print(type(out_JSON))

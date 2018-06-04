@@ -14,21 +14,25 @@ MAIL_PORT = int(587)
 MAIL_USE_TLS = 1  # os.environ.get('MAIL_USE_TLS') is not None  #always use TLS
 MAIL_USERNAME = 'AKIAI7B23SS5X4L2R2RA' # os.environ.get('MAIL_USERNAME')
 MAIL_PASSWORD = 'AkxJVyoDGE5rdVHek09AaWpVyauTldBI2FqOiopiWB/r' #os.environ.get('MAIL_PASSWORD')
-ADMINS = ['highratiotech@gmail.com']
+ADMINS = ['highratiotech@gmail.com', 'georLeonard@gmail.com']
+
+#
+# file = {
+#     'content': u'This,is,a,test,file',
+#     'filename': 'testfile.csv'
+# }
 
 
-file = {
-    'content': u'This,is,a,test,file',
-    'filename': 'testfile.csv'
-}
-
-
-def send_email(send_to, send_from, subject, message_text, file, filename):
+def send_email(send_to, send_from, subject, message_text, file= None, filename = None):
     # Create message container - multi/mixed MIME type for attachment
     full_email = MIMEMultipart('mixed')
     full_email['Subject'] = subject
     full_email['From'] = send_from
-    full_email['To'] = send_to
+
+    if type(send_to) is list or type(send_to) is tuple:
+        full_email['To'] = COMMASPACE.join(send_to)
+    else:
+        full_email['To'] = send_to
 
     body = MIMEMultipart('alternative')
     body.attach(MIMEText(message_text.encode('utf-8'),'plain', _charset='utf-8'))
@@ -42,12 +46,13 @@ def send_email(send_to, send_from, subject, message_text, file, filename):
     full_email.attach(body)
 
     # create the attachment of the message in
-    attachment = MIMENonMultipart('text','csv', charset='utf-8')
-    attachment.add_header('Content-Disposition', 'attachment', filename=filename)
-    cs = Charset('utf-8')
-    cs.body_encoding = BASE64
-    attachment.set_payload(file.encode('utf-8'), charset=cs)
-    full_email.attach(attachment)
+    if file:
+        attachment = MIMENonMultipart('text','csv', charset='utf-8')
+        attachment.add_header('Content-Disposition', 'attachment', filename=filename)
+        cs = Charset('utf-8')
+        cs.body_encoding = BASE64
+        attachment.set_payload(file.encode('utf-8'), charset=cs)
+        full_email.attach(attachment)
 
     # Send the message via SMTP server.
     s = smtplib.SMTP(MAIL_SERVER, MAIL_PORT)
@@ -56,10 +61,11 @@ def send_email(send_to, send_from, subject, message_text, file, filename):
     # sendmail function takes 3 arguments: sender's address, recipient's address
     # and message to send - here it is sent as one string.
     s.sendmail(send_from, send_to, full_email.as_string())
-    # self.logger.info('email sent')
     s.quit()
 
-send_email(ADMINS[0],ADMINS[0],'test message new eq', 'your results are enclosed this is message body', 'pretend, this, is a, csv,', 'test.csv')
+
+# test
+send_email(ADMINS[0],ADMINS[0],'test message-0 new eq', 'your results are enclosed this is message body', 'pretend, this, is a, csv,', 'test.csv')
 
 
 
