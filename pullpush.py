@@ -42,6 +42,7 @@ while True:
     try:
         for row in data_conn:
             data = row[0]  # call master function on data here
+            print(data)
             user_id = row[1]
             num_requested = row[2]
             id_ = row[3]
@@ -107,7 +108,7 @@ while True:
     SET analysis_in_progress = FALSE,
     analysis_complete = TRUE,
     timestamp_updated = '{}',
-    results = VALUES ('{}')
+    results = '{}'
     WHERE id = {}
     """.format(datetime.utcnow(), out_JSON, id_))
 
