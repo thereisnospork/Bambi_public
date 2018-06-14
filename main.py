@@ -201,7 +201,8 @@ def anal(df, num_requested):
             # cat_decode_by_label[label] = dict(zip(replacing, existing)) #created above
             df_input[label] = df_input[label].map(cat_decode_by_label[label])
 
-    out_df = df.append(out_df)
+    df = pd.DataFrame(columns=df_cols_in_order)  # only return newly generated experiments #comment me out if going for full array inc. data
+    out_df = df.append(out_df)  # df set at top to be full frame minus experiment #
     out_df = out_df[df_cols_in_order]
     out_df = out_df.reset_index(drop=True)
     sess.close()
