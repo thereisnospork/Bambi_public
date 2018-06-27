@@ -43,8 +43,13 @@ def anal(df, num_requested):
     # print(df_head)
 
     types = df_head.loc[[0]].values.flatten()
-    mins = df_head.loc[[1]].values.flatten().astype(np.float32)  # rows to #'s in np array
-    maxes = df_head.loc[[2]].values.flatten().astype(np.float32)
+    # experimental mins/maxs from inputted values if not supplied properly or supplied at all
+    try:
+        mins = df_head.loc[[1]].values.flatten().astype(np.float32)  # rows to #'s in np array
+        maxes = df_head.loc[[2]].values.flatten().astype(np.float32)
+    except Exception:
+        mins_maxes(df_input.values) ###DEUG ME PLEASE
+
     labels = df_head.columns.values
     out_weights = df_out_head.loc[[2]].values.flatten().astype(np.float32)
 

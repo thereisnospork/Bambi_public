@@ -129,7 +129,7 @@ def design_space_sample_exact(mins, maxes, types, samples, mix_sum, cat_ratio_di
     mix_bool = (types == 'MIX')
     cat_bool = (types == 'CATEGORICAL')
     mix_sub_array = raw_design[mix_bool]
-    cat_sub_array = raw_design[cat_bool]
+    # cat_sub_array = raw_design[cat_bool]
     mix_mins = mins[mix_bool]
     mix_maxes = maxes[mix_bool]
 

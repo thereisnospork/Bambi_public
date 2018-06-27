@@ -10,7 +10,7 @@ from threading import Thread
 import smtplib
 
 MAIL_SERVER = 'email-smtp.us-west-2.amazonaws.com' #os.environ.get('MAIL_SERVER')
-MAIL_PORT = int(587)
+MAIL_PORT = int(587) # os.environ.get('MAIL_PORT')
 MAIL_USE_TLS = 1  # os.environ.get('MAIL_USE_TLS') is not None  #always use TLS
 MAIL_USERNAME = 'AKIAI7B23SS5X4L2R2RA' # os.environ.get('MAIL_USERNAME')
 MAIL_PASSWORD = 'AkxJVyoDGE5rdVHek09AaWpVyauTldBI2FqOiopiWB/r' #os.environ.get('MAIL_PASSWORD')
