@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 import os
 from main import anal
 import pandas as pd
+import subprocess
 from email_func import send_email
 
 ###CONFIG###
@@ -14,14 +15,17 @@ SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-wi4ll-never-guess'
 # SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
 # SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:test1234@127.0.0.1:5432/gumdrop'
 
-SQLALCHEMY_DATABASE_URI = os.system(r'heroku config:get DATABASE_URL -a gumdrop')
+SQLALCHEMY_DATABASE_URI = subprocess.Popen(r'heroku config:get DATABASE_URL -a gumdrop', stdout=subprocess.PIPE, shell=True)
+SQLALCHEMY_DATABASE_URI.wait()
+SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.stdout.read()
 SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI + r'?ssl=true'
-
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 wait_seconds = 60  # seconds per loop
 
 # test email:
+print(type(SQLALCHEMY_DATABASE_URI))
+print(SQLALCHEMY_DATABASE_URI)
 
 db = create_engine(SQLALCHEMY_DATABASE_URI)
 # conn = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
@@ -31,8 +35,13 @@ db = create_engine(SQLALCHEMY_DATABASE_URI)
 
 while True:
     try:
-        SQLALCHEMY_DATABASE_URI = os.system(r'heroku config:get DATABASE_URL -a gumdrop')
+        SQLALCHEMY_DATABASE_URI = subprocess.Popen(r'heroku config:get DATABASE_URL -a gumdrop', shell=True,
+                                                   stdout=subprocess.PIPE)
+        SQLALCHEMY_DATABASE_URI.wait()
+        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.stdout.read()
         SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI + r'?ssl=true'
+
+
     except:
         sleep(180)
         continue
