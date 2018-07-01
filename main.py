@@ -55,7 +55,7 @@ def anal(df, num_requested):
 
     # print(out_weights)
 
-    cat_bool = (types == 'CATEGORICAL')
+    cat_bool = (types == 'CATEGORICAL' or types == 'CAT')
     cat_encode_by_label = dict()  # nested column -> key -> replace
     cat_decode_by_label = dict()  #
 

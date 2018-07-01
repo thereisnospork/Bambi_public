@@ -1,7 +1,7 @@
 from time import sleep
 from datetime import datetime
 from sqlalchemy import create_engine
-import psycopg2
+# import psycopg2
 import os
 from main import anal
 import pandas as pd

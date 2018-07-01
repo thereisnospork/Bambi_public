@@ -213,7 +213,7 @@ def mix_sum(ins, types):
     ins: input data ndarray (floats) representing non-normalized numbers
     types: label ndarray of str 'CATEGORICAL' 'CONTINUOUS' 'MIX' only valid entries
     """
-    mix_bool = (types == 'MIX')
+    mix_bool = (types == 'MIX' or types == 'MIXTURE')
     ins_mix = ins * mix_bool #0's non mix inputs - check geometry on matrix  multiplication
     ins_mix = np.sum(ins_mix, axis=1) #sums across experiments
     return np.max(ins_mix)  #max value of summation
@@ -263,7 +263,7 @@ def cat_ratios(ins, types, mins, maxes):
     :return: dict of dicts, first key is integer referring to which column the categorical value is
                 first value is dict of values: probabilities for that column
     """
-    cat_bool = (types == 'CATEGORICAL')
+    cat_bool = (types == 'CAT' or types == 'CATEGORICAL')
     dict_of_cat_ratio_dict = dict()
     for i, each in enumerate(types):
         # print(i)
