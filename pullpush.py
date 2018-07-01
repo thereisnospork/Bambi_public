@@ -17,16 +17,17 @@ SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-wi4ll-never-guess'
 
 SQLALCHEMY_DATABASE_URI = subprocess.Popen(r'heroku config:get DATABASE_URL -a gumdrop', stdout=subprocess.PIPE, shell=True)
 SQLALCHEMY_DATABASE_URI.wait()
-SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.stdout.read()
-SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI + r'?ssl=true'
+SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.stdout.read().decode('utf-8')
+# SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI + r'?ssl=true'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 wait_seconds = 60  # seconds per loop
 
 # test email:
-print(type(SQLALCHEMY_DATABASE_URI))
-print(SQLALCHEMY_DATABASE_URI)
-
+# print(type(SQLALCHEMY_DATABASE_URI))
+# print('1')
+# print(SQLALCHEMY_DATABASE_URI)
+# print('2')
 db = create_engine(SQLALCHEMY_DATABASE_URI)
 # conn = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
 
@@ -38,7 +39,7 @@ while True:
         SQLALCHEMY_DATABASE_URI = subprocess.Popen(r'heroku config:get DATABASE_URL -a gumdrop', shell=True,
                                                    stdout=subprocess.PIPE)
         SQLALCHEMY_DATABASE_URI.wait()
-        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.stdout.read()
+        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.stdout.read().decode('utf-8')
         SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI + r'?ssl=true'
 
 
