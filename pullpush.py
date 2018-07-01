@@ -13,6 +13,10 @@ SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-wi4ll-never-guess'
 
 # SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
 # SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:test1234@127.0.0.1:5432/gumdrop'
+
+SQLALCHEMY_DATABASE_URI = os.system(r'heroku config:get DATABASE_URL -a gumdrop')
+SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI + r'?ssl=true'
+
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 wait_seconds = 60  # seconds per loop
@@ -30,20 +34,26 @@ while True:
         SQLALCHEMY_DATABASE_URI = os.system(r'heroku config:get DATABASE_URL -a gumdrop')
         SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI + r'?ssl=true'
     except:
-        pass
+        sleep(180)
+        continue
 
-    data_conn = db.execute(
-        """
-        SELECT data, user_id, num_requested, id, project_label FROM project_index 
-        WHERE (analysis_in_progress = FALSE AND 
-        analysis_complete = FALSE) 
-        ORDER BY timestamp_created ASC 
-        LIMIT 1""")
-    #
-    # data_conn = db.execute(
-    #     """
-    #     SELECT data, user_id, num_requested, id FROM project_index
-    #     """)
+
+    try:
+            data_conn = db.execute(
+            """
+            SELECT data, user_id, num_requested, id, project_label FROM project_index 
+            WHERE (analysis_in_progress = FALSE AND 
+            analysis_complete = FALSE) 
+            ORDER BY timestamp_created ASC 
+            LIMIT 1""")
+        #
+        # data_conn = db.execute(
+        #     """
+        #     SELECT data, user_id, num_requested, id FROM project_index
+        #     """)
+    except:
+        sleep(5)
+        continue
 
     try:
         for row in data_conn:
