@@ -9,8 +9,10 @@ from email_func import send_email
 
 ###CONFIG###
 SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-wi4ll-never-guess'
-SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
-SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:test1234@127.0.0.1:5432/gumdrop'
+
+
+# SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+# SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:test1234@127.0.0.1:5432/gumdrop'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 wait_seconds = 60  # seconds per loop
@@ -23,8 +25,12 @@ db = create_engine(SQLALCHEMY_DATABASE_URI)
 # cur = conn.cursor()
 
 
-
 while True:
+    try:
+        SQLALCHEMY_DATABASE_URI = os.system(r'heroku config:get DATABASE_URL -a gumdrop')
+        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI + r'?ssl=true'
+    except:
+        pass
 
     data_conn = db.execute(
         """
