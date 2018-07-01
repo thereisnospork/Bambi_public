@@ -24,8 +24,8 @@ def perimeter_array(mins, maxes, types):
     pairs_arr = list()
 
     #create boolean arrays for types
-    cat_bool = (types == 'CATEGORICAL')
-    cont_bool = (types == 'CONTINUOUS')
+    cat_bool = (types == 'CATEGORICAL' or types == 'CAT' or types == 'CAT')
+    cont_bool = (types == 'CONTINUOUS' or types == 'CONT')
     mix_bool = (types == 'MIX')
 
     num_mix = np.count_nonzero(mix_bool)
@@ -79,8 +79,8 @@ def design_space_sample(mins, maxes, types, samples, mix_sum):
 
     """
     #create boolean arrays for types
-    cat_bool = (types == 'CATEGORICAL')
-    cont_bool = (types == 'CONTINUOUS')
+    cat_bool = (types == 'CATEGORICAL' or types == 'CAT')
+    cont_bool = (types == 'CONTINUOUS' or types == 'CONT')
     mix_bool = (types == 'MIX')
 
     num_mix = np.count_nonzero(mix_bool)
@@ -127,7 +127,7 @@ def design_space_sample_exact(mins, maxes, types, samples, mix_sum, cat_ratio_di
 
     raw_design = design_space_sample(mins, maxes, types, samples, mix_sum, )
     mix_bool = (types == 'MIX')
-    cat_bool = (types == 'CATEGORICAL')
+    cat_bool = (types == 'CATEGORICAL' or types == 'CAT')
     mix_sub_array = raw_design[mix_bool]
     # cat_sub_array = raw_design[cat_bool]
     mix_mins = mins[mix_bool]
@@ -263,7 +263,7 @@ def cat_ratios(ins, types, mins, maxes):
     :return: dict of dicts, first key is integer referring to which column the categorical value is
                 first value is dict of values: probabilities for that column
     """
-    cat_bool = (types == 'CAT' or types == 'CATEGORICAL')
+    cat_bool = (types == 'CAT' or types == 'CATEGORICAL' or types == 'CAT')
     dict_of_cat_ratio_dict = dict()
     for i, each in enumerate(types):
         # print(i)
