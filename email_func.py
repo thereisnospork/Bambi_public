@@ -65,7 +65,7 @@ def send_email(send_to, send_from, subject, message_text, file= None, filename =
 
 
 # test
-send_email(ADMINS[0],ADMINS[0],'test message-0 new eq', 'your results are enclosed this is message body', 'pretend, this, is a, csv,', 'test.csv')
+# send_email(ADMINS[0],ADMINS[0],'test message-0 new eq', 'your results are enclosed this is message body', 'pretend, this, is a, csv,', 'test.csv')
 
 
 
