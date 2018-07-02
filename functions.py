@@ -24,9 +24,9 @@ def perimeter_array(mins, maxes, types):
     pairs_arr = list()
 
     #create boolean arrays for types
-    cat_bool = (types == 'CATEGORICAL' or types == 'CAT' or types == 'CAT')
-    cont_bool = (types == 'CONTINUOUS' or types == 'CONT')
-    mix_bool = (types == 'MIX')
+    cat_bool = (types == 'CATEGORICAL') | (types == 'CAT')
+    cont_bool = (types == 'CONTINUOUS') | (types == 'CONT')
+    mix_bool = (types == 'MIX') | (types == 'MIXTURE')
 
     num_mix = np.count_nonzero(mix_bool)
     mix_order = 0  # staggers mixture concentrations so sum adds up
@@ -79,9 +79,9 @@ def design_space_sample(mins, maxes, types, samples, mix_sum):
 
     """
     #create boolean arrays for types
-    cat_bool = (types == 'CATEGORICAL' or types == 'CAT')
-    cont_bool = (types == 'CONTINUOUS' or types == 'CONT')
-    mix_bool = (types == 'MIX')
+    cat_bool = (types == 'CATEGORICAL') | (types == 'CAT')
+    cont_bool = (types == 'CONTINUOUS') | (types == 'CONT')
+    mix_bool = (types == 'MIX') | (types == 'MIXTURE')
 
     num_mix = np.count_nonzero(mix_bool)
     mix_order = 0  # staggers mixture concentrations so sum adds up
@@ -99,11 +99,11 @@ def design_space_sample(mins, maxes, types, samples, mix_sum):
             cat_levels.append(0) #placeholder 0
 
     for i, type in enumerate(types):
-        if type == 'CONTINUOUS':
+        if type == 'CONTINUOUS' or type == 'CONT':
             out_arr[i, :] = np.random.uniform(mins[i],maxes[i],[1,samples])
-        if type == 'CATEGORICAL':
+        if type == 'CATEGORICAL' or type == 'CAT':
             out_arr[i, :] = np.random.choice(cat_levels[i],size = [1,samples])
-        if type == 'MIX':
+        if type == 'MIX' or type == 'MIXTURE':
             out_arr[i, :] = np.random.uniform(mins[i], maxes[i], [1, samples]) #need to normalize to mix sum
 
     mix_sub_array = out_arr[mix_bool]
@@ -126,8 +126,8 @@ def design_space_sample_exact(mins, maxes, types, samples, mix_sum, cat_ratio_di
     """
 
     raw_design = design_space_sample(mins, maxes, types, samples, mix_sum, )
-    mix_bool = (types == 'MIX')
-    cat_bool = (types == 'CATEGORICAL' or types == 'CAT')
+    mix_bool = (types == 'MIX') | (types == 'MIXTURE')
+    cat_bool = (types == 'CATEGORICAL') | (types == 'CAT')
     mix_sub_array = raw_design[mix_bool]
     # cat_sub_array = raw_design[cat_bool]
     mix_mins = mins[mix_bool]
@@ -182,8 +182,9 @@ def optimal_design(mins, maxes, types, k, mix_sum, norm_ins, cat_dict):
     top_half_indicies = np.arange(0,k,1)
     unnormed_samples = design_space_sample_exact(mins, maxes, types, k*2, mix_sum)
 
-    not_cat_bool = (types != 'CATEGORICAL') #dropping categorical factors from distance calcs.
-    # ratios of cat will be determined from design_space_sample_exact method - needs refining to account for cat variables
+    not_cat_bool = (types != 'CATEGORICAL') & (types != 'CAT') #dropping categorical factors from distance calcs.
+    # ratios of cat will be determined from design_space_sample_exact method - needs refining to account
+    # for cat variables
 
 
     # norm_samples = normalize(init_samples, norm_ins)
@@ -213,7 +214,7 @@ def mix_sum(ins, types):
     ins: input data ndarray (floats) representing non-normalized numbers
     types: label ndarray of str 'CATEGORICAL' 'CONTINUOUS' 'MIX' only valid entries
     """
-    mix_bool = (types == 'MIX' or types == 'MIXTURE')
+    mix_bool = (types == 'MIX') | (types == 'MIXTURE')
     ins_mix = ins * mix_bool #0's non mix inputs - check geometry on matrix  multiplication
     ins_mix = np.sum(ins_mix, axis=1) #sums across experiments
     return np.max(ins_mix)  #max value of summation
@@ -263,7 +264,7 @@ def cat_ratios(ins, types, mins, maxes):
     :return: dict of dicts, first key is integer referring to which column the categorical value is
                 first value is dict of values: probabilities for that column
     """
-    cat_bool = (types == 'CAT' or types == 'CATEGORICAL' or types == 'CAT')
+    cat_bool = (types == 'CAT') | (types == 'CATEGORICAL')
     dict_of_cat_ratio_dict = dict()
     for i, each in enumerate(types):
         # print(i)

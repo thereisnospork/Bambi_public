@@ -14,6 +14,7 @@ def anal(df, num_requested):
     :param num_requested
     :return:
     """
+    # print(df)
     df = df.drop(columns=['Factor Name', ])  # drop experiment run id.
     df_cols_in_order = df.columns.values.tolist()
 
@@ -55,7 +56,7 @@ def anal(df, num_requested):
 
     # print(out_weights)
 
-    cat_bool = (types == 'CATEGORICAL' or types == 'CAT')
+    cat_bool = (types == 'CATEGORICAL') | (types == 'CAT') #needs to be | instead of 'or'
     cat_encode_by_label = dict()  # nested column -> key -> replace
     cat_decode_by_label = dict()  #
 
@@ -207,7 +208,7 @@ def anal(df, num_requested):
             df_input[label] = df_input[label].map(cat_decode_by_label[label])
 
     df = pd.DataFrame(columns=df_cols_in_order)  # only return newly generated experiments #comment me out if going for full array inc. data
-    out_df = df.append(out_df)  # df set at top to be full frame minus experiment #
+    out_df = df.append(out_df, sort=False)  # df set at top to be full frame minus experiment #
     out_df = out_df[df_cols_in_order]
     out_df = out_df.reset_index(drop=True)
     sess.close()
@@ -216,6 +217,6 @@ def anal(df, num_requested):
 
 ##test eval##
 
-# df = pd.read_csv(r'C:\Users\georg\PycharmProjects\Bambi\bambi_testing_2cat.csv')
-# out_df = anal(df, 40)
-# out_df.to_csv(r'C:\Users\georg\PycharmProjects\Bambi\out\bambi_test.csv', sep=',')
+df = pd.read_csv(r'C:\Users\georg\PycharmProjects\Bambi\bambi_testing_2cat.csv')
+out_df = anal(df, 40)
+out_df.to_csv(r'C:\Users\georg\PycharmProjects\Bambi\out\bambi_test.csv', sep=',')
