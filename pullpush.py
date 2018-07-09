@@ -192,7 +192,12 @@ while True:
 
     except Exception as e:
         print('ERROR in Analysis of id# {} failed at {} -- {}'.format(id_, datetime.utcnow(), e))
-
+        db.execute("""
+        UPDATE project_index
+        SET error = True,
+        timestamp_updated = '{}',
+        WHERE id = {}
+        """.format(datetime.utcnow(), id_))
     # db.execute("""
     # UPDATE project_index
     # SET analysis_in_progress = FALSE,
