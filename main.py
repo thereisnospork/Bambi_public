@@ -226,7 +226,7 @@ def anal(df, num_requested):
 
 
 ##test eval##
-
-df = pd.read_csv(r'C:\Users\georg\PycharmProjects\Bambi\bambi_testing_2cat.csv')
-out_df = anal(df, 40)
-out_df.to_csv(r'C:\Users\georg\PycharmProjects\Bambi\out\bambi_test.csv', sep=',')
+#
+# df = pd.read_csv(r'C:\Users\georg\PycharmProjects\Bambi\bambi_testing_2cat.csv')
+# out_df = anal(df, 40)
+# out_df.to_csv(r'C:\Users\georg\PycharmProjects\Bambi\out\bambi_test.csv', sep=',')
