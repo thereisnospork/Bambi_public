@@ -113,7 +113,7 @@ while True:
         db.execute("""
         UPDATE project_index
         SET error = True,
-        timestamp_updated = '{}',
+        timestamp_updated = '{}'
         WHERE id = {}
         """.format(datetime.utcnow(), id_))
         # will consider in_progress/not complete error signal in evaluation
@@ -195,7 +195,7 @@ while True:
         db.execute("""
         UPDATE project_index
         SET error = True,
-        timestamp_updated = '{}',
+        timestamp_updated = '{}'
         WHERE id = {}
         """.format(datetime.utcnow(), id_))
     # db.execute("""
