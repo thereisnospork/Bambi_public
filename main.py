@@ -15,7 +15,14 @@ def anal(df, num_requested):
     """
     try:
         # print(df)
-        df = df.drop(columns=['Factor Name', ])  # drop experiment run id.
+        try: ## alternative label name/indicator for template compatibility
+            df = df.drop(columns=['Labels', ])  # drop experiment run id.
+        except:
+            try:
+                df = df.drop(columns=['Factor Name', ])  # drop experiment run id.
+            except:
+                pass
+
         df_cols_in_order = df.columns.values.tolist()
 
         # print(df)
@@ -226,7 +233,8 @@ def anal(df, num_requested):
 
 
 ##test eval##
-#
-# df = pd.read_csv(r'C:\Users\georg\PycharmProjects\Bambi\bambi_testing_2cat.csv')
-# out_df = anal(df, 40)
-# out_df.to_csv(r'C:\Users\georg\PycharmProjects\Bambi\out\bambi_test.csv', sep=',')
+
+df = pd.read_excel(r'C:\Users\georg\Downloads\no_mins.xlsx',0,skiprows=0)
+print(df)
+out_df = anal(df, 40)
+out_df.to_csv(r'C:\Users\georg\PycharmProjects\Bambi\out\bambi_test.csv', sep=',')
