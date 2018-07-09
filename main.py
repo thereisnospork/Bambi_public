@@ -14,14 +14,7 @@ def anal(df, num_requested):
     :return:
     """
     try:
-        # print(df)
-        try: ## alternative label name/indicator for template compatibility
-            df = df.drop(columns=['Labels', ])  # drop experiment run id.
-        except:
-            try:
-                df = df.drop(columns=['Factor Name', ])  # drop experiment run id.
-            except:
-                pass
+        df = df.drop(columns=['Factor Name_', ])  # drop experiment run id.
 
         df_cols_in_order = df.columns.values.tolist()
 
