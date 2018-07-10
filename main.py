@@ -95,8 +95,8 @@ def anal(df, num_requested):
         # ####Model to fit prediction expression
         sess = tf.InteractiveSession()
 
-        x = tf.placeholder(tf.float32, shape=[None, num_factors])  # width of input
-        y_ = tf.placeholder(tf.float32, shape=[None, num_outs])  # width of output
+        x = tf.placeholder(tf.float64, shape=[None, num_factors])  # width of input
+        y_ = tf.placeholder(tf.float64, shape=[None, num_outs])  # width of output
 
         layer1 = tf.layers.dense(x, num_factors, tf.nn.softplus, bias_initializer=tf.random_uniform_initializer)
         layer2 = tf.layers.dense(layer1, num_factors, tf.nn.softplus, bias_initializer=tf.random_uniform_initializer)
@@ -120,7 +120,7 @@ def anal(df, num_requested):
         ins = ins_unnorm / norm_vector_in
 
         outs = df_output.values  # pd df to numpy
-        norm_vector_out = np.linalg.nrm(outs, axis=0, ord=2) / (outs.shape[1])
+        norm_vector_out = np.linalg.norm(outs, axis=0, ord=2) / (outs.shape[1])
         outs = outs / norm_vector_out
 
         # print(ins)
@@ -227,7 +227,7 @@ def anal(df, num_requested):
 
 ##test eval##
 
-# df = pd.read_excel(r'C:\Users\georg\Downloads\no_mins.xlsx',0,skiprows=0)
+# df = pd.read_csv(r'C:\Users\georg\PycharmProjects\Bambi\bambi_testing_2cat.csv')
 # print(df)
 # out_df = anal(df, 40)
 # out_df.to_csv(r'C:\Users\georg\PycharmProjects\Bambi\out\bambi_test.csv', sep=',')
