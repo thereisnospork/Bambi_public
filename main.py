@@ -142,7 +142,7 @@ def anal(df, num_requested):
 
             loop_start = timer()
 
-            for i in range(max(500000, num_factors*10000)):  # 50000): # 100000 previously
+            for i in range(max(500000, num_factors*10000), df_input.count*4000):  # 50000): # 100000 previously
                 sess.run(train_step, feed_dict={x: ins[train_i],
                                                 y_: outs[train_i]})
 
