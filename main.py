@@ -95,8 +95,8 @@ def anal(df, num_requested):
         # ####Model to fit prediction expression
         sess = tf.InteractiveSession()
 
-        x = tf.placeholder(tf.float64, shape=[None, num_factors])  # width of input
-        y_ = tf.placeholder(tf.float64, shape=[None, num_outs])  # width of output
+        x = tf.placeholder(tf.float32, shape=[None, num_factors])  # width of input
+        y_ = tf.placeholder(tf.float32, shape=[None, num_outs])  # width of output
 
         layer1 = tf.layers.dense(x, num_factors, tf.nn.softplus, bias_initializer=tf.random_uniform_initializer)
         layer2 = tf.layers.dense(layer1, num_factors, tf.nn.softplus, bias_initializer=tf.random_uniform_initializer)
@@ -110,7 +110,7 @@ def anal(df, num_requested):
             cross_entropy = tf.losses.huber_loss(labels=y_, predictions=y)
 
         with tf.name_scope('train'):
-            train_step = tf.train.AdamOptimizer(learning_rate=min([.00005, .002 / df_input.shape[0]]), epsilon=.00000001).minimize(cross_entropy)  # lr .00005
+            train_step = tf.train.AdamOptimizer(learning_rate=min([.00005, .003 / df_input.shape[0]]), epsilon=.00000001).minimize(cross_entropy)  # lr .00005
             # train_step = tf.train.GradientDescentOptimizer(.9).minimize(cross_entropy)
 
         ins_unnorm = df_input.values
@@ -142,7 +142,7 @@ def anal(df, num_requested):
 
             loop_start = timer()
 
-            for i in range(max(100000, num_factors*10000, df_input.shape[0]*1000)):  # 50000): # 100000 previously
+            for i in range(max(100000, num_factors*5000, df_input.shape[0]*500)):  # 50000): # 100000 previously
                 sess.run(train_step, feed_dict={x: ins[train_i],
                                                 y_: outs[train_i]})
 
