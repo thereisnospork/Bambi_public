@@ -110,7 +110,7 @@ def anal(df, num_requested):
             cross_entropy = tf.losses.huber_loss(labels=y_, predictions=y)
 
         with tf.name_scope('train'):
-            train_step = tf.train.AdamOptimizer(learning_rate=.00005, epsilon=.00000001).minimize(cross_entropy)
+            train_step = tf.train.AdamOptimizer(learning_rate=min([.00005, .001/df_input.count]), epsilon=.00000001).minimize(cross_entropy)  # lr .00005
             # train_step = tf.train.GradientDescentOptimizer(.9).minimize(cross_entropy)
 
         ins_unnorm = df_input.values
@@ -142,7 +142,7 @@ def anal(df, num_requested):
 
             loop_start = timer()
 
-            for i in range(max(100000, num_factors*10000)):  # 50000):
+            for i in range(max(500000, num_factors*10000)):  # 50000): # 100000 previously
                 sess.run(train_step, feed_dict={x: ins[train_i],
                                                 y_: outs[train_i]})
 
