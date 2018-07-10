@@ -15,7 +15,6 @@ def anal(df, num_requested):
     """
     try:
         df = df.drop(columns=['Factor Name_', ])  # drop experiment run id.
-
         df_cols_in_order = df.columns.values.tolist()
 
         # print(df)
@@ -23,7 +22,7 @@ def anal(df, num_requested):
         df_head = df[0:3].reset_index().copy()
         df_body = df[3:].reset_index().copy()
         df_body = df_body.apply(pd.to_numeric, errors='ignore')
-
+        df_body.dropna(inplace=True)    # = df_body.dropna() #nuke all rows containing NaNs
         # print(df_head)
 
         df_output = df_body.filter(regex=('OUT.*'))  # selects OUT**** to create DF of outputs
@@ -110,7 +109,7 @@ def anal(df, num_requested):
             cross_entropy = tf.losses.huber_loss(labels=y_, predictions=y)
 
         with tf.name_scope('train'):
-            train_step = tf.train.AdamOptimizer(learning_rate=min([.00005, .003 / df_input.shape[0]]), epsilon=.00000001).minimize(cross_entropy)  # lr .00005
+            train_step = tf.train.AdamOptimizer(learning_rate=.00005, epsilon=.00000001).minimize(cross_entropy)  # lr .00005 or =min([.00005, .0001 / df_input.shape[0]])
             # train_step = tf.train.GradientDescentOptimizer(.9).minimize(cross_entropy)
 
         ins_unnorm = df_input.values
@@ -142,7 +141,7 @@ def anal(df, num_requested):
 
             loop_start = timer()
 
-            for i in range(max(100000, num_factors*5000, df_input.shape[0]*500)):  # 50000): # 100000 previously
+            for i in range(max(100000, num_factors*2000, df_input.shape[0]*500)):  # 50000): # 100000 previously
                 sess.run(train_step, feed_dict={x: ins[train_i],
                                                 y_: outs[train_i]})
 
@@ -227,7 +226,7 @@ def anal(df, num_requested):
 
 ##test eval##
 
-# df = pd.read_csv(r'C:\Users\georg\PycharmProjects\Bambi\bambi_testing_2cat.csv')
+# df = pd.read_csv(r'C:\Users\georg\Downloads\1000_exp_4_data.csv')
 # print(df)
 # out_df = anal(df, 40)
 # out_df.to_csv(r'C:\Users\georg\PycharmProjects\Bambi\out\bambi_test.csv', sep=',')
