@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from functions import design_space_sample, mix_sum, normalize, cat_ratios, \
-    de_normalize, mins_maxes, optimal_design
+    mins_maxes, optimal_design
 from timeit import default_timer as timer
 import gc
 # ####################READ IN CSV PARTITION INTO HEAD BODY INPUT OUTPUTS##################
@@ -48,7 +48,7 @@ def anal(df, num_requested):
             mins = df_head.loc[[1]].values.flatten().astype(np.float32)  # rows to #'s in np array
             maxes = df_head.loc[[2]].values.flatten().astype(np.float32)
         except Exception:
-            mins_maxes(df_input.values) ###DEUG ME PLEASE
+            mins, maxes = mins_maxes(df_input.values) ###DEUG ME PLEASE
 
         labels = df_head.columns.values
         out_weights = df_out_head.loc[[2]].values.flatten().astype(np.float32)
@@ -172,7 +172,13 @@ def anal(df, num_requested):
         space_sample_norm = normalize(space_sample, norm_vector_in)
         space_sample_norm = np.transpose(space_sample_norm)
         # Evaluate samples according to TF model
-        space_sample_eval = sess.run(y, {x: space_sample_norm[:]})
+
+        per_loop = 100000
+        loops = samples//per_loop
+        space_sample_eval = np.zeros([samples, num_outs])
+
+        for n, i in enumerate(range(loops)):
+            space_sample_eval[n*per_loop:(n+1)*per_loop] = sess.run(y, {x: space_sample_norm[n*per_loop:(n+1)*per_loop]})
 
         # weight and sum the resulted models
         weighted_eval = np.sum(space_sample_eval * out_weights, axis=1)
@@ -217,6 +223,7 @@ def anal(df, num_requested):
         return out_df
 
     except Exception as e:
+        raise
         sess.close()
         sess.__del__()  # nuke session
         gc.collect()
@@ -230,3 +237,27 @@ def anal(df, num_requested):
 # print(df)
 # out_df = anal(df, 40)
 # out_df.to_csv(r'C:\Users\georg\PycharmProjects\Bambi\out\bambi_test.csv', sep=',')
+
+
+
+
+        #
+        # # generate samples over design space
+        # designs = max(10000000, num_factors ** 2 * 1000)
+        # loops = min(50, designs//1000000)
+        # per_loop = designs//loops
+        # weighted_eval = np.zeros(designs) #preallocate
+        #
+        # for n, i in enumerate(range(loops)):
+        #
+        #     # samples = max(num_factors ** 2 * 1000, designs)
+        #
+        #     space_sample = design_space_sample(mins, maxes, types, per_loop, mix_sum(ins_unnorm, types))
+        #     space_sample_norm = normalize(space_sample, norm_vector_in)
+        #     space_sample_norm = np.transpose(space_sample_norm)
+        #     # Evaluate samples according to TF model
+        #     space_sample_eval = sess.run(y, {x: space_sample_norm[:]})
+        #
+        #     # weight and sum the resulted models
+        #     print(n)
+        #     weighted_eval[n*per_loop:((n+1)*per_loop)] = np.sum(space_sample_eval * out_weights, axis=1).flatten() #add weights to preallocated array
