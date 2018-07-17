@@ -233,8 +233,14 @@ def mins_maxes(ins):
     maxes = np.zeros(ins.shape[0]) #preallocate outputs
 
     for i, _ in enumerate(ins):
-        mins[i] = np.min(ins[i])
-        maxes[i] = np.max(ins[i])
+        try:
+            mins[i] = np.min(ins[i])
+        except:
+            mins[i] = np.nan
+        try:
+            maxes[i] = np.max(ins[i])
+        except:
+            maxes[i] = np.nan
 
     return mins, maxes
 
