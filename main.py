@@ -47,8 +47,19 @@ def anal(df, num_requested):
         try:
             mins = df_head.loc[[1]].values.flatten().astype(np.float32)  # rows to #'s in np array
             maxes = df_head.loc[[2]].values.flatten().astype(np.float32)
+            # print('la de da')
+            mins_gen, maxes_gen = mins_maxes(df_input.values.transpose())
+            # print('la de da')
+            mins[np.isnan(mins)] = mins_gen[np.isnan(mins)] # replace nan's with values generated from array.  if both nan do nothing
+            maxes[np.isnan(maxes)] = maxes_gen[np.isnan(maxes)]
+
+            # print(mins)
+            # print(maxes)
         except Exception:
             mins, maxes = mins_maxes(df_input.values) ###DEUG ME PLEASE
+            # print('mins maxes inferred')
+            # print(mins)
+            # print(maxes)
 
         labels = df_head.columns.values
         out_weights = df_out_head.loc[[2]].values.flatten().astype(np.float32)
