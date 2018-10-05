@@ -9,22 +9,7 @@ import subprocess
 from email_func import send_email
 
 ###CONFIG###
-# SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-wi4ll-never-guess'
-
-# SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:test1234@127.0.0.1:5432/gumdrop'
-
-# SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
-
-SQLALCHEMY_DATABASE_URI = r'postgresql://postgresadmin:dNIEXCr9C0@gumdrop-db.cynoe9cyh2ga.us-east-1.rds.amazonaws.com:5432/gumdrop_main'
-
-SQLALCHEMY_TRACK_MODIFICATIONS = False
-wait_seconds = 60
-
-db = create_engine(SQLALCHEMY_DATABASE_URI)
-# conn = psycopg2.connect(SQLALCHEMY_DATABASE_URI)
-
-# cur = conn.cursor()
-
+# nope...
 
 while True:
     data, user_id, num_requested, id_, project_label, user_email_address = None, None, None, None, None, None  # reset variables so they don't carry over  # call master function on data here
